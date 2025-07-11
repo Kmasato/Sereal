@@ -27,7 +27,8 @@ impl fmt::Display for BaudRate {
 }
 
 pub struct MyApp {
-    serial_port: String,
+    port: Option<Box<dyn serialport::SerialPort>>,
+    port_name: String,
     baud_rate: BaudRate,
     is_connect: bool,
 }
@@ -35,7 +36,8 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            serial_port: "Select Serial Port".to_string(),
+            port: None,
+            port_name: "Select Serial Port".to_string(),
             baud_rate: BaudRate::BaudRate115200,
             is_connect: false,
         }
@@ -68,7 +70,7 @@ impl eframe::App for MyApp {
         egui::TopBottomPanel::top("").show(&ctx, |ui| {
             // SerialPort を選択する ComboBox を用意
             let port_combo_box =
-                egui::ComboBox::from_id_salt("SerialPort").selected_text(self.serial_port.clone());
+                egui::ComboBox::from_id_salt("SerialPort").selected_text(self.port_name.clone());
 
             // BaudRate を選択する ComboBox を用意
             let baud_rate_combo_box = egui::ComboBox::from_id_salt("BaudRate")
@@ -82,7 +84,7 @@ impl eframe::App for MyApp {
                         ui.label("No Serial Ports found.");
                     } else {
                         for port in &available_ports {
-                            ui.selectable_value(&mut self.serial_port, port.clone(), port.clone());
+                            ui.selectable_value(&mut self.port_name, port.clone(), port.clone());
                         }
                     }
                 });
@@ -112,7 +114,24 @@ impl eframe::App for MyApp {
 
                     ui.visuals_mut().widgets.inactive.weak_bg_fill = connect_button_color;
                     if ui.button(connect_button_text).clicked() {
-                        self.is_connect = !self.is_connect;
+                        if !self.is_connect {
+                            match serialport::new(self.port_name.clone(), self.baud_rate as u32)
+                                .open()
+                            {
+                                Ok(port) => {
+                                    self.port = Some(port);
+                                    self.is_connect = true;
+                                    println!("Connected Success!");
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to connect {}", e);
+                                }
+                            }
+                        } else {
+                            self.port.take(); // Optional の中を取り出して None にする
+                            self.is_connect = false;
+                            println!("Disconnected Success!")
+                        }
                     };
                 });
             });
