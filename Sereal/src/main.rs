@@ -27,17 +27,21 @@ impl fmt::Display for BaudRate {
 }
 
 pub struct MyApp {
-    serial_port: String,
+    port: Option<Box<dyn serialport::SerialPort>>,
+    port_name: String,
     baud_rate: BaudRate,
     is_connect: bool,
+    received_text: String,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            serial_port: "Select Serial Port".to_string(),
+            port: None,
+            port_name: "Select Serial Port".to_string(),
             baud_rate: BaudRate::BaudRate115200,
             is_connect: false,
+            received_text: String::new(),
         }
     }
 }
@@ -68,7 +72,7 @@ impl eframe::App for MyApp {
         egui::TopBottomPanel::top("").show(&ctx, |ui| {
             // SerialPort を選択する ComboBox を用意
             let port_combo_box =
-                egui::ComboBox::from_id_salt("SerialPort").selected_text(self.serial_port.clone());
+                egui::ComboBox::from_id_salt("SerialPort").selected_text(self.port_name.clone());
 
             // BaudRate を選択する ComboBox を用意
             let baud_rate_combo_box = egui::ComboBox::from_id_salt("BaudRate")
@@ -82,7 +86,7 @@ impl eframe::App for MyApp {
                         ui.label("No Serial Ports found.");
                     } else {
                         for port in &available_ports {
-                            ui.selectable_value(&mut self.serial_port, port.clone(), port.clone());
+                            ui.selectable_value(&mut self.port_name, port.clone(), port.clone());
                         }
                     }
                 });
@@ -112,15 +116,49 @@ impl eframe::App for MyApp {
 
                     ui.visuals_mut().widgets.inactive.weak_bg_fill = connect_button_color;
                     if ui.button(connect_button_text).clicked() {
-                        self.is_connect = !self.is_connect;
+                        if !self.is_connect {
+                            match serialport::new(self.port_name.clone(), self.baud_rate as u32)
+                                .open()
+                            {
+                                Ok(port) => {
+                                    self.port = Some(port);
+                                    self.is_connect = true;
+                                    println!("Connected Success!");
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to connect {}", e);
+                                }
+                            }
+                        } else {
+                            self.port.take(); // Optional の中を取り出して None にする
+                            self.is_connect = false;
+                            println!("Disconnected Success!")
+                        }
                     };
                 });
             });
         });
 
-        // TODO : 受信結果を表示
+        if self.is_connect {
+            if let Some(port) = &mut self.port {
+                if let Ok(bytes_to_read) = port.bytes_to_read() {
+                    if bytes_to_read > 0 {
+                        let mut _buffer = vec![0; bytes_to_read as usize];
+                        if let Ok(bytes_read) = port.read(&mut _buffer) {
+                            let received_part = String::from_utf8_lossy(&_buffer[..bytes_read]);
+                            self.received_text.push_str(&received_part);
+                        }
+                    }
+                }
+            }
+        }
+
         egui::CentralPanel::default().show(&ctx, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {});
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.set_min_width(ui.available_width());
+                ui.add(egui::Label::new(&self.received_text).wrap());
+                ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+            })
         });
     }
 }
