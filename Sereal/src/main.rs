@@ -31,6 +31,7 @@ pub struct MyApp {
     port_name: String,
     baud_rate: BaudRate,
     is_connect: bool,
+    received_text: String,
 }
 
 impl Default for MyApp {
@@ -40,6 +41,7 @@ impl Default for MyApp {
             port_name: "Select Serial Port".to_string(),
             baud_rate: BaudRate::BaudRate115200,
             is_connect: false,
+            received_text: String::new(),
         }
     }
 }
@@ -137,9 +139,26 @@ impl eframe::App for MyApp {
             });
         });
 
-        // TODO : 受信結果を表示
+        if self.is_connect {
+            if let Some(port) = &mut self.port {
+                if let Ok(bytes_to_read) = port.bytes_to_read() {
+                    if bytes_to_read > 0 {
+                        let mut _buffer = vec![0; bytes_to_read as usize];
+                        if let Ok(bytes_read) = port.read(&mut _buffer) {
+                            let received_part = String::from_utf8_lossy(&_buffer[..bytes_read]);
+                            self.received_text.push_str(&received_part);
+                        }
+                    }
+                }
+            }
+        }
+
         egui::CentralPanel::default().show(&ctx, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {});
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.set_min_width(ui.available_width());
+                ui.add(egui::Label::new(&self.received_text).wrap());
+                ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+            })
         });
     }
 }
