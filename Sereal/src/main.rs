@@ -1,6 +1,14 @@
 use core::fmt;
 use eframe::egui;
 use serialport;
+use std::io;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+    mpsc,
+};
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum BaudRate {
@@ -27,21 +35,23 @@ impl fmt::Display for BaudRate {
 }
 
 pub struct MyApp {
-    port: Option<Box<dyn serialport::SerialPort>>,
     port_name: String,
     baud_rate: BaudRate,
     is_connect: bool,
     received_text: String,
+    receiver: Option<mpsc::Receiver<String>>,
+    is_running_thread: Option<Arc<AtomicBool>>,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            port: None,
             port_name: "Select Serial Port".to_string(),
             baud_rate: BaudRate::BaudRate115200,
             is_connect: false,
             received_text: String::new(),
+            receiver: None,
+            is_running_thread: None,
         }
     }
 }
@@ -69,6 +79,13 @@ fn list_serial_port() -> Vec<String> {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // シリアルの受信処理
+        if let Some(receiver) = &self.receiver {
+            for text in receiver.try_iter() {
+                self.received_text.push_str(&text);
+            }
+        }
+
         egui::TopBottomPanel::top("").show(&ctx, |ui| {
             // SerialPort を選択する ComboBox を用意
             let port_combo_box =
@@ -117,11 +134,50 @@ impl eframe::App for MyApp {
                     ui.visuals_mut().widgets.inactive.weak_bg_fill = connect_button_color;
                     if ui.button(connect_button_text).clicked() {
                         if !self.is_connect {
-                            match serialport::new(self.port_name.clone(), self.baud_rate as u32)
-                                .open()
-                            {
-                                Ok(port) => {
-                                    self.port = Some(port);
+                            // 接続処理
+                            let port_builder =
+                                serialport::new(self.port_name.clone(), self.baud_rate as u32)
+                                    .timeout(Duration::from_millis(10));
+
+                            match port_builder.open() {
+                                Ok(mut port) => {
+                                    // スレッド間通信用のチャンネルを作成
+                                    let (sender, receiver) = mpsc::channel();
+                                    self.receiver = Some(receiver);
+
+                                    // スレッド停止用のフラグを作成
+                                    let is_running = Arc::new(AtomicBool::new(true));
+                                    self.is_running_thread = Some(is_running.clone());
+
+                                    // 新しいスレッドを開始
+                                    // move で port, sender, is_running の所有権をスレッド内に移動
+                                    thread::spawn(move || {
+                                        // is_running が true の間、ループし続ける
+                                        if let Ok(bytes_to_read) = port.bytes_to_read() {
+                                            let mut buffer = vec![0; bytes_to_read as usize];
+                                            while is_running.load(Ordering::Relaxed) {
+                                                match port.read(&mut buffer) {
+                                                    // スレッド内で受信を待つ
+                                                    Ok(bytes) => {
+                                                        let received_part =
+                                                            String::from_utf8_lossy(
+                                                                &buffer[..bytes],
+                                                            )
+                                                            .to_string();
+                                                        if sender.send(received_part).is_err() {
+                                                            break;
+                                                        };
+                                                    }
+                                                    Err(ref e)
+                                                        if e.kind() == io::ErrorKind::TimedOut =>
+                                                    {
+                                                        ()
+                                                    }
+                                                    Err(_) => break,
+                                                }
+                                            }
+                                        }
+                                    });
                                     self.is_connect = true;
                                     println!("Connected Success!");
                                 }
@@ -130,7 +186,12 @@ impl eframe::App for MyApp {
                                 }
                             }
                         } else {
-                            self.port.take(); // Optional の中を取り出して None にする
+                            // 切断処理
+                            if let Some(is_running) = &self.is_running_thread {
+                                is_running.store(false, Ordering::Relaxed);
+                            }
+                            self.is_running_thread = None;
+                            self.receiver = None;
                             self.is_connect = false;
                             println!("Disconnected Success!")
                         }
@@ -139,20 +200,7 @@ impl eframe::App for MyApp {
             });
         });
 
-        if self.is_connect {
-            if let Some(port) = &mut self.port {
-                if let Ok(bytes_to_read) = port.bytes_to_read() {
-                    if bytes_to_read > 0 {
-                        let mut _buffer = vec![0; bytes_to_read as usize];
-                        if let Ok(bytes_read) = port.read(&mut _buffer) {
-                            let received_part = String::from_utf8_lossy(&_buffer[..bytes_read]);
-                            self.received_text.push_str(&received_part);
-                        }
-                    }
-                }
-            }
-        }
-
+        // 受診結果の表示
         egui::CentralPanel::default().show(&ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.set_min_width(ui.available_width());
@@ -160,6 +208,9 @@ impl eframe::App for MyApp {
                 ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
             })
         });
+
+        // 描画を継続的に更新するようにリクエスト
+        ctx.request_repaint();
     }
 }
 
