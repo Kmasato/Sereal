@@ -102,4 +102,8 @@ impl Controller {
     pub fn is_connect(&self) -> bool {
         self.is_running_thread.load(Ordering::Relaxed)
     }
+
+    pub fn get_port_name(&self) -> String {
+        self.port_name.clone()
+    }
 }
