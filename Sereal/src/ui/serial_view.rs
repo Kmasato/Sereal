@@ -2,15 +2,16 @@ use crate::serial;
 use eframe::egui;
 
 pub struct SerialView {
+    id: usize,
     serial_controller: serial::Controller,
     received_text: String,
-    #[allow(unused)] // TODO: autoscroll を制御できるようにする
     is_autoscroll_enabled: bool,
 }
 
 impl Default for SerialView {
     fn default() -> Self {
         Self {
+            id: 0,
             serial_controller: serial::Controller::default(),
             received_text: String::new(),
             is_autoscroll_enabled: true,
@@ -19,7 +20,16 @@ impl Default for SerialView {
 }
 
 impl SerialView {
-    pub fn show(&mut self, ctx: &egui::Context) {
+    pub fn new(id: usize) -> Self {
+        Self {
+            id,
+            serial_controller: serial::Controller::default(),
+            received_text: String::new(),
+            is_autoscroll_enabled: true,
+        }
+    }
+
+    pub fn ui(&mut self, ui: &mut egui::Ui) {
         // シリアルの受信処理
         if let Some(receiver) = &self.serial_controller.receiver {
             for text in receiver.try_iter() {
@@ -27,7 +37,7 @@ impl SerialView {
             }
         }
 
-        egui::TopBottomPanel::top("").show(&ctx, |ui| {
+        ui.vertical(|ui| {
             // SerialPort を選択する ComboBox を用意
             let port_combo_box = egui::ComboBox::from_id_salt("SerialPort")
                 .selected_text(self.serial_controller.port_name());
@@ -99,16 +109,24 @@ impl SerialView {
             });
         });
 
-        // 受信結果の表示
-        egui::CentralPanel::default().show(&ctx, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {
+        // コントロール部と表示部の区切り線
+        ui.separator();
+
+        egui::ScrollArea::vertical()
+            .stick_to_bottom(self.is_autoscroll_enabled)
+            .show(ui, |ui| {
                 ui.set_min_width(ui.available_width());
                 ui.add(egui::Label::new(&self.received_text).wrap());
-                ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
-            })
-        });
+            });
+    }
 
-        // 描画を継続的に更新するようにリクエスト
-        ctx.request_repaint();
+    pub fn get_port_name(&self) -> String {
+        let port_name = self.serial_controller.get_port_name();
+        match port_name.as_str() {
+            "" => {
+                format!("Port {}", self.id)
+            }
+            _name => port_name,
+        }
     }
 }
