@@ -8,5 +8,7 @@ eframe = "0.32.0"
 egui = "0.32.0"
 egui_dock = "0.17.0"
 getset = "0.1.6"
-objc2-foundation = "0.3.1"
 serialport = "4.7.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = "0.3.1"
