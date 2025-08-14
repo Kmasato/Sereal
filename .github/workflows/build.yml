@@ -1,0 +1,36 @@
+name: Sereal Cross Platform Build
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [windows-latest, macos-latest]
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            # Rust toolchain のセットアップ (actions-rust-lang/setup-rust-toolchain を使用)
+            - name: Install Rust toolchain
+              uses: actions-rust-lang/setup-rust-toolchain@v1
+              with:
+                # Cargo の依存関係をキャッシュする
+                cache: true
+
+            - name: Build (release)
+              run: cargo build --release --package Sereal
+            
+            # 成果物のアップロード
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                    name: sereal-${{ matrix.os }}
+                    path: target/release/Sereal${{ runner.os == 'Windows' && '.exe' || '' }}
+
+
