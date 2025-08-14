@@ -40,6 +40,7 @@ jobs:
             - name: Package macOS Artifact
               if: runner.os == 'macOS'
               run: |
+                chmod +x target/release/bundle/osx/Sereal.app/Contents/MacOS/Sereal
                 mkdir sereal-macos
                 mv target/release/bundle/osx/Sereal.app sereal-macos/
 
