@@ -16,11 +16,9 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            # Rust toolchain のセットアップ (actions-rust-lang/setup-rust-toolchain を使用)
             - name: Install Rust toolchain
               uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
-                # Cargo の依存関係をキャッシュする
                 cache: true
 
             - name: Build on Windows
@@ -33,18 +31,31 @@ jobs:
                 cargo install cargo-bundle
                 cargo bundle --release --package Sereal
 
+            - name: Package Windows Artifact
+              if: runner.os == 'Windows'
+              run: |
+                mkdir sereal-windows
+                mv target/release/Sereal.exe sereal-windows/
+
+            - name: Package macOS Artifact
+              if: runner.os == 'macOS'
+              run: |
+                mkdir sereal-macos
+                mv target/release/bundle/osx/Sereal.app sereal-macos/
+
             - name: Upload Windows Artifact
               if: runner.os == 'Windows'
               uses: actions/upload-artifact@v4
               with:
                 name: sereal-windows
-                path: target/release/Sereal.exe
+                path: sereal-windows/
 
             - name: Upload macOS Artifact
               if: runner.os == 'macOS'
               uses: actions/upload-artifact@v4
               with:
                 name: sereal-macos
-                path: target/release/bundle/osx/Sereal.app
+                path: sereal-macos/
+
 
 
