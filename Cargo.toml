@@ -1,7 +1,3 @@
 [workspace]
 resolver = "2"
 members = ["Sereal"]
-
-# https://github.com/madsmtm/objc2/issues/765 
-[profile.dev.package.objc2]
-debug-assertions = false
