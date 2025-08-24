@@ -16,21 +16,50 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            # Rust toolchain のセットアップ (actions-rust-lang/setup-rust-toolchain を使用)
             - name: Install Rust toolchain
               uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
-                # Cargo の依存関係をキャッシュする
                 cache: true
 
-            - name: Build (release)
+            - name: Build on Windows
+              if: runner.os == 'Windows'
               run: cargo build --release --package Sereal
-            
-            # 成果物のアップロード
-            - name: Upload artifact
+
+            - name: Build .app on macOS
+              if: runner.os == 'macOS'
+              run: |
+                cargo install cargo-bundle
+                cargo bundle --release --package Sereal
+
+            - name: Package Windows Artifact
+              if: runner.os == 'Windows'
+              run: |
+                mkdir sereal-windows
+                mv target/release/Sereal.exe sereal-windows/
+
+            - name: Package macOS Artifact
+              if: runner.os == 'macOS'
+              run: |
+                chmod +x target/release/bundle/osx/Sereal.app/Contents/MacOS/Sereal
+                codesign --force --deep --sign - target/release/bundle/osx/Sereal.app
+                mkdir sereal-macos
+                mv target/release/bundle/osx/Sereal.app sereal-macos/
+                xattr -cr sereal-macos/Sereal.app
+                
+
+            - name: Upload Windows Artifact
+              if: runner.os == 'Windows'
               uses: actions/upload-artifact@v4
               with:
-                    name: sereal-${{ matrix.os }}
-                    path: target/release/Sereal${{ runner.os == 'Windows' && '.exe' || '' }}
+                name: sereal-windows
+                path: sereal-windows/
+
+            - name: Upload macOS Artifact
+              if: runner.os == 'macOS'
+              uses: actions/upload-artifact@v4
+              with:
+                name: sereal-macos
+                path: sereal-macos/
+
 
 
