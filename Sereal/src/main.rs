@@ -1,5 +1,7 @@
 #![windows_subsystem = "windows"]
 
+mod ansi_formatter;
+mod sereal_colors;
 mod serial;
 mod ui;
 
