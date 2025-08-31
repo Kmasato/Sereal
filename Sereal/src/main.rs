@@ -32,9 +32,18 @@ impl TabViewer for AppTabViewer<'_> {
     }
 }
 
+#[derive(PartialEq, Default)]
+enum Theme {
+    System,
+    LightMode,
+    #[default]
+    DarkMode,
+}
+
 pub struct MyApp {
     dock_state: DockState<ui::SerialView>,
     counter: usize,
+    theme: Theme,
 }
 
 impl Default for MyApp {
@@ -44,14 +53,37 @@ impl Default for MyApp {
         Self {
             dock_state,
             counter: 1,
+            theme: Theme::default(),
         }
     }
 }
 
 impl eframe::App for MyApp {
+    // テーマの反映
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // // トップメニュー
-        // egui::TopBottomPanel::top("menu_bar").show(ctx, |_ui| {});
+        match self.theme {
+            Theme::System => {
+                if let Some(theme) = ctx.input(|i| i.raw.system_theme) {
+                    match theme {
+                        egui::Theme::Light => ctx.set_visuals(egui::Visuals::light()),
+                        egui::Theme::Dark => ctx.set_visuals(egui::Visuals::dark()),
+                    }
+                }
+            }
+            Theme::LightMode => ctx.set_visuals(egui::Visuals::light()),
+            Theme::DarkMode => ctx.set_visuals(egui::Visuals::dark()),
+        }
+
+        // トップメニュー
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            ui.menu_button("Preferences", |ui| {
+                ui.menu_button("Theme", |ui| {
+                    ui.selectable_value(&mut self.theme, Theme::System, "System");
+                    ui.selectable_value(&mut self.theme, Theme::LightMode, "Light");
+                    ui.selectable_value(&mut self.theme, Theme::DarkMode, "Dark");
+                });
+            });
+        });
 
         let mut added_nodes = Vec::new();
 
