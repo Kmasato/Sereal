@@ -1,3 +1,4 @@
+use crate::ansi_formatter;
 use crate::serial;
 use eframe::egui;
 
@@ -5,6 +6,7 @@ pub struct SerialView {
     id: usize,
     serial_controller: serial::Controller,
     received_text: String,
+    formatter: ansi_formatter::AnsiFormatter,
     is_autoscroll_enabled: bool,
 }
 
@@ -14,6 +16,7 @@ impl Default for SerialView {
             id: 0,
             serial_controller: serial::Controller::default(),
             received_text: String::new(),
+            formatter: ansi_formatter::AnsiFormatter::default(),
             is_autoscroll_enabled: true,
         }
     }
@@ -25,6 +28,7 @@ impl SerialView {
             id,
             serial_controller: serial::Controller::default(),
             received_text: String::new(),
+            formatter: ansi_formatter::AnsiFormatter::default(),
             is_autoscroll_enabled: true,
         }
     }
@@ -116,7 +120,18 @@ impl SerialView {
             .stick_to_bottom(self.is_autoscroll_enabled)
             .show(ui, |ui| {
                 ui.set_min_width(ui.available_width());
-                ui.add(egui::Label::new(&self.received_text).wrap());
+                ui.scope(|ui| {
+                    ui.spacing_mut().item_spacing = egui::Vec2 { x: 0.0, y: 0.0 };
+
+                    // FIXME:毎回変換を行っているが、処理負荷が重いため修正する
+                    for line in self.received_text.lines() {
+                        let rich_text = self.formatter.to_rich_text(&line.to_string());
+                        ui.horizontal_wrapped(|ui| {
+                            ui.label(rich_text);
+                        });
+                    }
+                });
+                self.formatter.reset();
             });
     }
 
