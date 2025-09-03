@@ -2,10 +2,13 @@ use crate::ansi_formatter;
 use crate::serial;
 use eframe::egui;
 
+const HISTORY_MAX_LINES: usize = 5000;
+
 pub struct SerialView {
     id: usize,
     serial_controller: serial::Controller,
     received_text: String,
+    received_line_count: usize,
     formatter: ansi_formatter::AnsiFormatter,
     is_autoscroll_enabled: bool,
 }
@@ -16,6 +19,7 @@ impl Default for SerialView {
             id: 0,
             serial_controller: serial::Controller::default(),
             received_text: String::new(),
+            received_line_count: 0,
             formatter: ansi_formatter::AnsiFormatter::default(),
             is_autoscroll_enabled: true,
         }
@@ -28,6 +32,7 @@ impl SerialView {
             id,
             serial_controller: serial::Controller::default(),
             received_text: String::new(),
+            received_line_count: 0,
             formatter: ansi_formatter::AnsiFormatter::default(),
             is_autoscroll_enabled: true,
         }
@@ -38,6 +43,17 @@ impl SerialView {
         if let Some(receiver) = &self.serial_controller.receiver {
             for text in receiver.try_iter() {
                 self.received_text.push_str(&text);
+                if text.contains('\n') {
+                    self.received_line_count += 1;
+                }
+            }
+        }
+
+        // FIXME:単純に削ると以前のデザイン情報が削られるため直す必要あり
+        if HISTORY_MAX_LINES < self.received_line_count {
+            if let Some(index) = self.received_text.find('\n') {
+                self.received_text.drain(..=index);
+                self.received_line_count -= 1;
             }
         }
 
