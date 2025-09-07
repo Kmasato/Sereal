@@ -1,5 +1,5 @@
 ---
-name: "🗓️ Planned Feature"
+name: "🚀 Planned Feature"
 about: "Outline a new feature planned for development"
 title: "[PLAN] "
 labels: "enhancement"
