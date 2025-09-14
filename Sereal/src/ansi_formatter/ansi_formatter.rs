@@ -42,9 +42,8 @@ impl AnsiFormatter {
                 rich_text = rich_text.background_color(back_color);
             }
 
-            if self.color_set.is_reset {
+            if updated_color_set.is_reset {
                 self.color_set = ColorSet::default();
-                println!("Reset");
             }
 
             if rich_text.text().len() != 0 {
