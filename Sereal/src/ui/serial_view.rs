@@ -141,9 +141,10 @@ impl SerialView {
 
                     // FIXME:毎回変換を行っているが、処理負荷が重いため修正する
                     for line in self.received_text.lines() {
-                        let rich_text = self.formatter.to_rich_text(&line.to_string());
                         ui.horizontal_wrapped(|ui| {
-                            ui.label(rich_text);
+                            for rich_text in self.formatter.to_rich_text(&line.to_string()) {
+                                ui.label(rich_text);
+                            }
                         });
                     }
                 });

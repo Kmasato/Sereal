@@ -9,15 +9,17 @@ pub struct AnsiFormatter {
 }
 
 impl AnsiFormatter {
-    pub fn to_rich_text(&mut self, text: &String) -> egui::RichText {
-        let parsed_text: Vec<ansi_parser::Output> = text.ansi_parse().take(2).collect();
+    pub fn to_rich_text(&mut self, text: &String) -> Vec<egui::RichText> {
+        let mut rich_texts = Vec::new();
 
-        let mut ret_text = RichText::default();
-        let mut updated_color_set = ColorSet::default();
+        for block in text.ansi_parse() {
+            // ANSI タグの結果を反映した RichText
+            let mut rich_text = RichText::default();
+            // ANSI タグをパースした色情報を管理する構造体
+            let mut updated_color_set = ColorSet::default();
 
-        for block in parsed_text.into_iter() {
             match block {
-                Output::TextBlock(text) => ret_text = RichText::from(text),
+                Output::TextBlock(text) => rich_text = RichText::from(text),
                 Output::Escape(seq) => match seq {
                     AnsiSequence::SetGraphicsMode(params) => {
                         updated_color_set = parse_to_colorset(params.to_vec());
@@ -25,28 +27,32 @@ impl AnsiFormatter {
                     _ => {}
                 },
             }
+
+            if let Some(text_color) = updated_color_set.text_color {
+                rich_text = rich_text.color(text_color);
+                self.color_set.text_color = Some(text_color);
+            } else if let Some(text_color) = self.color_set.text_color {
+                rich_text = rich_text.color(text_color);
+            }
+
+            if let Some(back_color) = updated_color_set.background_color {
+                rich_text = rich_text.background_color(back_color);
+                self.color_set.background_color = Some(back_color);
+            } else if let Some(back_color) = self.color_set.background_color {
+                rich_text = rich_text.background_color(back_color);
+            }
+
+            if self.color_set.is_reset {
+                self.color_set = ColorSet::default();
+                println!("Reset");
+            }
+
+            if rich_text.text().len() != 0 {
+                rich_texts.push(rich_text);
+            }
         }
 
-        if let Some(text_color) = updated_color_set.text_color {
-            ret_text = ret_text.color(text_color);
-            self.color_set.text_color = Some(text_color);
-        } else if let Some(text_color) = self.color_set.text_color {
-            ret_text = ret_text.color(text_color);
-        }
-
-        if let Some(back_color) = updated_color_set.background_color {
-            ret_text = ret_text.background_color(back_color);
-            self.color_set.background_color = Some(back_color);
-        } else if let Some(back_color) = self.color_set.background_color {
-            ret_text = ret_text.background_color(back_color);
-        }
-
-        if self.color_set.is_reset {
-            self.color_set = ColorSet::default();
-            println!("Reset");
-        }
-
-        ret_text
+        rich_texts
     }
 
     pub fn reset(&mut self) {
