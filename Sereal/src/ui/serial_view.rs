@@ -126,6 +126,22 @@ impl SerialView {
                         }
                     };
                 });
+
+                // クリアボタン
+                let clear_button = egui::Button::image(
+                    egui::Image::new(egui::include_image!("../../assets/eraser.svg"))
+                        .fit_to_exact_size(egui::Vec2 { x: 15.0, y: 15.0 })
+                        .tint(ui.visuals().text_color()),
+                );
+                if ui
+                    .add(clear_button)
+                    .on_hover_text("Clear all buffer")
+                    .clicked()
+                {
+                    self.formatter.reset();
+                    self.received_text.clear();
+                    self.received_line_count = 0;
+                }
             });
         });
 

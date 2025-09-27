@@ -8,6 +8,7 @@ ansi-parser = "0.9.1"
 eframe = "0.32.0"
 egui = "0.32.0"
 egui_dock = "0.17.0"
+egui_extras = { version = "0.32.3", features = ["svg", "image"] }
 getset = "0.1.6"
 serialport = "4.7.2"
 

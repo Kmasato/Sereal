@@ -124,6 +124,9 @@ fn main() {
     let _ = eframe::run_native(
         "Sereal",
         options,
-        Box::new(|_cc| Ok(Box::<MyApp>::default())),
+        Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
+            Ok(Box::<MyApp>::default())
+        }),
     );
 }
