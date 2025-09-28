@@ -1,6 +1,6 @@
 [package]
 name = "Sereal"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2024"
 
 [dependencies]
@@ -18,5 +18,5 @@ objc2-foundation = "0.3.1"
 [package.metadata.bundle]
 name = "Sereal"
 identifier = "teck.kobazlab.Sereal"
-version = "0.0.0"
+version = "0.1.0-alpha.1"
 copyright = "Copyright (c) Masato Kobayashi 2025. All rights reserved."
