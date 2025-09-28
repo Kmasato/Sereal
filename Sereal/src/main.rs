@@ -76,11 +76,17 @@ impl eframe::App for MyApp {
 
         // トップメニュー
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            ui.menu_button("Preferences", |ui| {
-                ui.menu_button("Theme", |ui| {
-                    ui.selectable_value(&mut self.theme, Theme::System, "System");
-                    ui.selectable_value(&mut self.theme, Theme::LightMode, "Light");
-                    ui.selectable_value(&mut self.theme, Theme::DarkMode, "Dark");
+            ui.horizontal(|ui| {
+                ui.menu_button("Preferences", |ui| {
+                    ui.menu_button("Theme", |ui| {
+                        ui.selectable_value(&mut self.theme, Theme::System, "System");
+                        ui.selectable_value(&mut self.theme, Theme::LightMode, "Light");
+                        ui.selectable_value(&mut self.theme, Theme::DarkMode, "Dark");
+                    });
+                });
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label(format!("v{}", env!("CARGO_PKG_VERSION")));
                 });
             });
         });
