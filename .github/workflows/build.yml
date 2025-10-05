@@ -33,31 +33,44 @@ jobs:
           cargo install cargo-bundle
           cargo bundle --release --package Sereal
 
+      - name: Get version (macOS)
+        if: runner.os == 'macOS'
+        run: echo "APP_VERSION=$(grep version Sereal/Cargo.toml | head -n 1 | cut -d '\"' -f 2)" >> $GITHUB_ENV
+
+      - name: Get version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = (Get-Content -Path Sereal/Cargo.toml | Select-String -Pattern 'version = "(.+)"|')[0].Matches[0].Groups[1].Value
+          echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Package Windows Artifact
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          mkdir sereal-windows
-          mv target/release/Sereal.exe sereal-windows/
+          $appName = "sereal-windows-${{ env.APP_VERSION }}"
+          mkdir $appName
+          Copy-Item -Path "target/release/Sereal.exe" -Destination "$appName/"
 
       - name: Package macOS Artifact
         if: runner.os == 'macOS'
         run: |
           chmod +x target/release/bundle/osx/Sereal.app/Contents/MacOS/Sereal
           codesign --force --deep --sign - target/release/bundle/osx/Sereal.app
-          mkdir sereal-macos
-          mv target/release/bundle/osx/Sereal.app sereal-macos/
-          xattr -cr sereal-macos/Sereal.app
+          mkdir "sereal-macos-${{ env.APP_VERSION }}"
+          mv target/release/bundle/osx/Sereal.app "sereal-macos-${{ env.APP_VERSION }}/"
+          xattr -cr "sereal-macos-${{ env.APP_VERSION }}/Sereal.app"
 
       - name: Upload Windows Artifact
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: sereal-windows
-          path: sereal-windows/
+          name: sereal-windows-${{ env.APP_VERSION }}
+          path: sereal-windows-${{ env.APP_VERSION }}/
 
       - name: Upload macOS Artifact
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: sereal-macos
-          path: sereal-macos/
+          name: sereal-macos-${{ env.APP_VERSION }}
+          path: sereal-macos-${{ env.APP_VERSION }}/
