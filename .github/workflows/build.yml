@@ -1,67 +1,63 @@
 name: Sereal Cross Platform Build
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-    build:
-        runs-on: ${{ matrix.os }}
-        strategy:
-            matrix:
-                os: [windows-latest, macos-latest]
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
-              with:
-                lfs: true
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
 
-            - name: Install Rust toolchain
-              uses: actions-rust-lang/setup-rust-toolchain@v1
-              with:
-                cache: true
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: true
 
-            - name: Build on Windows
-              if: runner.os == 'Windows'
-              run: cargo build --release --package Sereal
+      - name: Build on Windows
+        if: runner.os == 'Windows'
+        run: cargo build --release --package Sereal
 
-            - name: Build .app on macOS
-              if: runner.os == 'macOS'
-              run: |
-                cargo install cargo-bundle
-                cargo bundle --release --package Sereal
+      - name: Build .app on macOS
+        if: runner.os == 'macOS'
+        run: |
+          cargo install cargo-bundle
+          cargo bundle --release --package Sereal
 
-            - name: Package Windows Artifact
-              if: runner.os == 'Windows'
-              run: |
-                mkdir sereal-windows
-                mv target/release/Sereal.exe sereal-windows/
+      - name: Package Windows Artifact
+        if: runner.os == 'Windows'
+        run: |
+          mkdir sereal-windows
+          mv target/release/Sereal.exe sereal-windows/
 
-            - name: Package macOS Artifact
-              if: runner.os == 'macOS'
-              run: |
-                chmod +x target/release/bundle/osx/Sereal.app/Contents/MacOS/Sereal
-                codesign --force --deep --sign - target/release/bundle/osx/Sereal.app
-                mkdir sereal-macos
-                mv target/release/bundle/osx/Sereal.app sereal-macos/
-                xattr -cr sereal-macos/Sereal.app
-                
+      - name: Package macOS Artifact
+        if: runner.os == 'macOS'
+        run: |
+          chmod +x target/release/bundle/osx/Sereal.app/Contents/MacOS/Sereal
+          codesign --force --deep --sign - target/release/bundle/osx/Sereal.app
+          mkdir sereal-macos
+          mv target/release/bundle/osx/Sereal.app sereal-macos/
+          xattr -cr sereal-macos/Sereal.app
 
-            - name: Upload Windows Artifact
-              if: runner.os == 'Windows'
-              uses: actions/upload-artifact@v4
-              with:
-                name: sereal-windows
-                path: sereal-windows/
+      - name: Upload Windows Artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sereal-windows
+          path: sereal-windows/
 
-            - name: Upload macOS Artifact
-              if: runner.os == 'macOS'
-              uses: actions/upload-artifact@v4
-              with:
-                name: sereal-macos
-                path: sereal-macos/
-
-
-
+      - name: Upload macOS Artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sereal-macos
+          path: sereal-macos/
