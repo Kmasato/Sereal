@@ -18,3 +18,6 @@ pub use self::pallet::BRIGHT_MAGENTA;
 pub use self::pallet::BRIGHT_RED;
 pub use self::pallet::BRIGHT_WHITE;
 pub use self::pallet::BRIGHT_YELLOW;
+
+pub use self::pallet::UI_GREEN;
+pub use self::pallet::UI_WHITE;

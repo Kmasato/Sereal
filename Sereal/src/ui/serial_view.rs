@@ -1,4 +1,5 @@
 use crate::ansi_formatter;
+use crate::sereal_colors;
 use crate::serial;
 use eframe::egui;
 
@@ -95,37 +96,41 @@ impl SerialView {
                 });
 
                 // 接続ボタン
-                ui.scope(|ui| {
-                    // 接続ボタンのテキスト
-                    let connect_button_text = if self.serial_controller.is_connect() {
-                        "Connected"
-                    } else {
-                        "DisConnected"
-                    };
+                let is_connect = self.serial_controller.is_connect();
 
-                    // 接続ボタンの色
-                    let connect_button_color = if self.serial_controller.is_connect() {
-                        egui::Color32::from_rgb(0, 150, 0)
-                    } else {
-                        egui::Color32::from_rgb(200, 0, 0)
-                    };
-
-                    ui.visuals_mut().widgets.inactive.weak_bg_fill = connect_button_color;
-                    if ui.button(connect_button_text).clicked() {
-                        if !self.serial_controller.is_connect() {
-                            // 接続処理
-                            match self.serial_controller.connect() {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    eprintln!("Error:{e}");
-                                }
-                            }
+                let connect_icon =
+                    egui::Image::new(egui::include_image!("../../assets/connect.svg"))
+                        .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
+                        .tint(if is_connect {
+                            sereal_colors::UI_WHITE.to_egui_color32()
                         } else {
-                            // 切断処理
-                            self.serial_controller.disconnect();
-                        }
-                    };
+                            ui.visuals().text_color()
+                        });
+
+                let connect_button = egui::Button::image(connect_icon).fill(if is_connect {
+                    sereal_colors::UI_GREEN.to_egui_color32()
+                } else {
+                    ui.visuals().code_bg_color
                 });
+
+                if ui
+                    .add(connect_button)
+                    .on_hover_text(if is_connect { "Disconnect" } else { "Connect" })
+                    .clicked()
+                {
+                    if !self.serial_controller.is_connect() {
+                        // 接続処理
+                        match self.serial_controller.connect() {
+                            Ok(_) => {}
+                            Err(e) => {
+                                eprintln!("Error:{e}");
+                            }
+                        }
+                    } else {
+                        // 切断処理
+                        self.serial_controller.disconnect();
+                    }
+                }
 
                 // クリアボタン
                 let clear_button = egui::Button::image(
