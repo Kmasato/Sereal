@@ -99,3 +99,18 @@ pub const BRIGHT_WHITE: Color = Color {
     blue: 255,
     transparent: 255,
 };
+
+// --- UI Colors ---
+
+pub const UI_GREEN: Color = Color {
+    red: 0,
+    green: 150,
+    blue: 0,
+    transparent: 255,
+};
+pub const UI_WHITE: Color = Color {
+    red: 200,
+    green: 200,
+    blue: 200,
+    transparent: 255,
+};
