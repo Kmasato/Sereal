@@ -1,8 +1,9 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Default, Debug, PartialEq, Clone, Copy)]
 pub enum BaudRate {
     BaudRate9600 = 9600,
+    #[default]
     BaudRate115200 = 115200,
 }
 

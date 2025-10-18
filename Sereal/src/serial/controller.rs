@@ -23,7 +23,7 @@ impl Default for Controller {
     fn default() -> Self {
         Self {
             port_name: String::default(),
-            baud_rate: BaudRate::BaudRate115200,
+            baud_rate: BaudRate::BaudRate115200, // TODO: serialport::SerialPortを用意し、そっちで管理する
             is_running_thread: Arc::default(),
             receiver: None,
             read_thread_handle: None,
