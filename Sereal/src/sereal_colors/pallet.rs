@@ -108,6 +108,12 @@ pub const UI_GREEN: Color = Color {
     blue: 0,
     transparent: 255,
 };
+pub const UI_RED: Color = Color {
+    red: 240,
+    green: 40,
+    blue: 40,
+    transparent: 255,
+};
 pub const UI_WHITE: Color = Color {
     red: 200,
     green: 200,

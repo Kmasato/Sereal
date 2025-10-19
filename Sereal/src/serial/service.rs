@@ -12,7 +12,7 @@ impl SerialService {
         port_name: &str,
         baud_rate: super::types::BaudRate,
     ) -> Result<(), serialport::Error> {
-        if self.controllers.contains_key(port_name) {
+        if self.is_physical_connected(port_name) {
             return Ok(());
         }
 
@@ -20,7 +20,7 @@ impl SerialService {
         *controller.port_name_mut() = port_name.to_string();
         *controller.baud_rate_mut() = baud_rate;
 
-        match controller.connect() {
+        match controller.activate() {
             Ok(_) => {
                 self.controllers.insert(port_name.to_string(), controller);
                 Ok(())
@@ -31,14 +31,25 @@ impl SerialService {
 
     pub fn disconnect(&mut self, port_name: &str) {
         if let Some(mut controller) = self.controllers.remove(port_name) {
-            controller.disconnect();
+            controller.deactivate();
         }
     }
 
     pub fn is_connected(&self, port_name: &str) -> bool {
         self.controllers.contains_key(port_name)
+            && self
+                .get_controller(port_name)
+                .map_or(false, |controller| controller.is_activate())
     }
 
+    pub fn is_physical_connected(&self, port_name: &str) -> bool {
+        self.controllers.contains_key(port_name)
+            && self
+                .get_controller(port_name)
+                .map_or(false, |controller| controller.is_physical_connected())
+    }
+
+    // TODO: 将来的に非公開にする
     pub fn get_controller(&self, port_name: &str) -> Option<&Controller> {
         self.controllers.get(port_name)
     }
@@ -54,7 +65,7 @@ impl SerialService {
                     }
                 }
                 // 接続済みのポートはリストから除外する
-                !self.is_connected(port)
+                !self.is_connected(&port)
             })
             .collect()
     }

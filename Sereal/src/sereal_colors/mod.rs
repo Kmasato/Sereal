@@ -20,4 +20,5 @@ pub use self::pallet::BRIGHT_WHITE;
 pub use self::pallet::BRIGHT_YELLOW;
 
 pub use self::pallet::UI_GREEN;
+pub use self::pallet::UI_RED;
 pub use self::pallet::UI_WHITE;
