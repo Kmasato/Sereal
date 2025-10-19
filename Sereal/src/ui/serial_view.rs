@@ -88,29 +88,43 @@ impl SerialView {
                 });
 
                 // 接続ボタン
-                let is_connect = service.is_connected(&self.port_name);
+                let is_physical_connected = service.is_physical_connected(&self.port_name);
+                let is_connected = service.is_connected(&self.port_name);
 
-                let connect_icon =
+                let connect_icon = if is_connected && !is_physical_connected {
+                    egui::Image::new(egui::include_image!("../../assets/disconnect.svg"))
+                        .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
+                        .tint(sereal_colors::UI_WHITE.to_egui_color32())
+                } else {
                     egui::Image::new(egui::include_image!("../../assets/connect.svg"))
                         .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
-                        .tint(if is_connect {
+                        .tint(if is_connected {
                             sereal_colors::UI_WHITE.to_egui_color32()
                         } else {
                             ui.visuals().text_color()
-                        });
+                        })
+                };
 
-                let connect_button = egui::Button::image(connect_icon).fill(if is_connect {
-                    sereal_colors::UI_GREEN.to_egui_color32()
+                let connect_button = egui::Button::image(connect_icon).fill(if is_connected {
+                    if is_physical_connected {
+                        sereal_colors::UI_GREEN.to_egui_color32()
+                    } else {
+                        sereal_colors::UI_RED.to_egui_color32()
+                    }
                 } else {
                     ui.visuals().code_bg_color
                 });
 
                 if ui
                     .add(connect_button)
-                    .on_hover_text(if is_connect { "Disconnect" } else { "Connect" })
+                    .on_hover_text(if is_connected {
+                        "Disconnect"
+                    } else {
+                        "Connect"
+                    })
                     .clicked()
                 {
-                    if !is_connect {
+                    if !is_connected {
                         // 接続処理
                         match service.connect(&self.port_name, self.baud_rate) {
                             Ok(_) => {}
