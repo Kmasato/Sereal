@@ -33,6 +33,8 @@ impl AnsiFormatter {
                 self.color_set.text_color = Some(text_color);
             } else if let Some(text_color) = self.color_set.text_color {
                 rich_text = rich_text.color(text_color);
+            } else {
+                rich_text = rich_text.color(sereal_colors::WHITE.to_egui_color32());
             }
 
             if let Some(back_color) = updated_color_set.background_color {
