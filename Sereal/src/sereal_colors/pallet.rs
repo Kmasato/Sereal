@@ -8,45 +8,45 @@ pub const BLACK: Color = Color {
     transparent: 255,
 };
 pub const RED: Color = Color {
-    red: 128,
-    green: 0,
-    blue: 0,
+    red: 255,
+    green: 60,
+    blue: 60,
     transparent: 255,
 };
 pub const GREEN: Color = Color {
-    red: 0,
-    green: 128,
-    blue: 0,
+    red: 60,
+    green: 255,
+    blue: 60,
     transparent: 255,
 };
 pub const YELLOW: Color = Color {
-    red: 128,
-    green: 128,
-    blue: 0,
+    red: 255,
+    green: 255,
+    blue: 60,
     transparent: 255,
 };
 pub const BLUE: Color = Color {
     red: 0,
-    green: 0,
-    blue: 128,
+    green: 130,
+    blue: 255,
     transparent: 255,
 };
 pub const MAGENTA: Color = Color {
-    red: 128,
-    green: 0,
-    blue: 128,
+    red: 255,
+    green: 45,
+    blue: 255,
     transparent: 255,
 };
 pub const CYAN: Color = Color {
-    red: 0,
-    green: 128,
-    blue: 128,
+    red: 50,
+    green: 255,
+    blue: 255,
     transparent: 255,
 };
 pub const WHITE: Color = Color {
-    red: 192,
-    green: 192,
-    blue: 192,
+    red: 235,
+    green: 235,
+    blue: 235,
     transparent: 255,
 };
 
@@ -59,36 +59,36 @@ pub const BRIGHT_BLACK: Color = Color {
 };
 pub const BRIGHT_RED: Color = Color {
     red: 255,
-    green: 0,
-    blue: 0,
+    green: 95,
+    blue: 95,
     transparent: 255,
 };
 pub const BRIGHT_GREEN: Color = Color {
-    red: 0,
+    red: 120,
     green: 255,
-    blue: 0,
+    blue: 120,
     transparent: 255,
 };
 pub const BRIGHT_YELLOW: Color = Color {
     red: 255,
     green: 255,
-    blue: 0,
+    blue: 120,
     transparent: 255,
 };
 pub const BRIGHT_BLUE: Color = Color {
-    red: 0,
-    green: 0,
+    red: 80,
+    green: 175,
     blue: 255,
     transparent: 255,
 };
 pub const BRIGHT_MAGENTA: Color = Color {
     red: 255,
-    green: 0,
+    green: 100,
     blue: 255,
     transparent: 255,
 };
 pub const BRIGHT_CYAN: Color = Color {
-    red: 0,
+    red: 130,
     green: 255,
     blue: 255,
     transparent: 255,
