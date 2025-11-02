@@ -18,6 +18,13 @@ pub struct SerialView {
     is_autoscroll_enabled: bool,
 }
 
+impl Drop for SerialView {
+    fn drop(&mut self) {
+        let mut service = self.serial_service.lock().unwrap();
+        service.disconnect(&self.port_name);
+    }
+}
+
 impl SerialView {
     pub fn new(
         port_name: String,
