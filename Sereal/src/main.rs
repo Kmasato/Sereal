@@ -124,6 +124,16 @@ impl eframe::App for MyApp {
             self.dock_state.push_to_focused_leaf(new_tab);
         });
 
+        // 最後のタブが閉じられたら新しいタブを追加する
+        if self.dock_state.surfaces_count() == 1 && self.dock_state.iter_all_tabs().count() == 0 {
+            let unused_port_index = self.get_unused_port_index();
+            let new_tab = ui::SerialView::new(
+                format!("Port {}", unused_port_index),
+                Arc::clone(&self.serial_service),
+            );
+            self.dock_state.push_to_first_leaf(new_tab);
+        }
+
         ctx.request_repaint();
     }
 }
