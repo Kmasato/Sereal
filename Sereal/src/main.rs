@@ -45,7 +45,6 @@ enum Theme {
 
 pub struct MyApp {
     dock_state: DockState<ui::SerialView>,
-    counter: usize,
     serial_service: Arc<std::sync::Mutex<SerialService>>,
     theme: Theme,
 }
@@ -53,11 +52,10 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> Self {
         let serial_service = Arc::new(std::sync::Mutex::new(SerialService::default()));
-        let initial_tab = ui::SerialView::new("".to_string(), Arc::clone(&serial_service));
+        let initial_tab = ui::SerialView::new("Port 0".to_string(), Arc::clone(&serial_service));
         let dock_state = DockState::new(vec![initial_tab]);
         Self {
             dock_state,
-            counter: 1,
             serial_service,
             theme: Theme::default(),
         }
@@ -118,15 +116,32 @@ impl eframe::App for MyApp {
         added_nodes.drain(..).for_each(|(surface, node)| {
             self.dock_state
                 .set_focused_node_and_surface((surface, node));
+            let unused_port_index = self.get_unused_port_index();
             let new_tab = ui::SerialView::new(
-                format!("Port {}", self.counter),
+                format!("Port {}", unused_port_index),
                 Arc::clone(&self.serial_service),
             );
             self.dock_state.push_to_focused_leaf(new_tab);
-            self.counter += 1;
         });
 
         ctx.request_repaint();
+    }
+}
+
+impl MyApp {
+    fn get_unused_port_index(&self) -> usize {
+        let mut port_index = 0;
+        loop {
+            let port_name = format!("Port {}", port_index);
+            if self
+                .dock_state
+                .iter_all_tabs()
+                .all(|((_, _), tab)| tab.get_port_name() != port_name)
+            {
+                return port_index;
+            }
+            port_index += 1;
+        }
     }
 }
 
