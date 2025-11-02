@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::ansi_formatter;
 use crate::sereal_colors;
 use crate::serial;
+use crate::serial::BaudRate;
 use eframe::egui;
 
 const HISTORY_MAX_LINES: usize = 5000;
@@ -42,15 +43,16 @@ impl SerialView {
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        let mut service = self.serial_service.lock().unwrap();
-
         // シリアルの受信処理
-        if let Some(controller) = service.get_controller(&self.port_name) {
-            if let Some(receiver) = &controller.receiver {
-                for text in receiver.try_iter() {
-                    self.received_text.push_str(&text);
-                    if text.contains('\n') {
-                        self.received_line_count += 1;
+        {
+            let service = self.serial_service.lock().unwrap();
+            if let Some(controller) = service.get_controller(&self.port_name) {
+                if let Some(receiver) = &controller.receiver {
+                    for text in receiver.try_iter() {
+                        self.received_text.push_str(&text);
+                        if text.contains('\n') {
+                            self.received_line_count += 1;
+                        }
                     }
                 }
             }
@@ -76,75 +78,105 @@ impl SerialView {
             ui.horizontal(|ui| {
                 // SerialPort を選択する ComboBox の描画
                 port_combo_box.show_ui(ui, |ui| {
-                    let available_ports = service.get_available_ports(Some(&self.port_name));
+                    let available_ports = {
+                        let service = self.serial_service.lock().unwrap();
+                        service.get_available_ports(Some(&self.port_name))
+                    };
                     if available_ports.is_empty() {
                         ui.label("No Serial Ports found.");
                     } else {
+                        let last_port_name = self.port_name.clone();
                         for port in &available_ports {
-                            ui.selectable_value(&mut self.port_name, port.clone(), port.clone());
+                            if ui
+                                .selectable_value(&mut self.port_name, port.clone(), port.clone())
+                                .changed()
+                            {
+                                self.disconnect_and_connect(
+                                    &last_port_name,
+                                    &self.port_name,
+                                    self.baud_rate,
+                                );
+                            }
                         }
                     }
                 });
 
                 // BaudRate を選択する ComboBox の描画
-                // TODO: BaudRate が変更された時は、再設定するようにする
                 baud_rate_combo_box.show_ui(ui, |ui| {
                     for rate in serial::BaudRate::iter() {
-                        ui.selectable_value(&mut self.baud_rate, rate, format!("{}", rate));
+                        if ui
+                            .selectable_value(&mut self.baud_rate, rate, format!("{}", rate))
+                            .changed()
+                        {
+                            self.disconnect_and_connect(
+                                &self.port_name,
+                                &self.port_name,
+                                self.baud_rate,
+                            );
+                        }
                     }
                 });
 
                 // 接続ボタン
-                let is_physical_connected = service.is_physical_connected(&self.port_name);
-                let is_connected = service.is_connected(&self.port_name);
-
-                let connect_icon = if is_connected && !is_physical_connected {
-                    egui::Image::new(egui::include_image!("../../assets/disconnect.svg"))
-                        .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
-                        .tint(sereal_colors::UI_WHITE.to_egui_color32())
-                } else {
-                    egui::Image::new(egui::include_image!("../../assets/connect.svg"))
-                        .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
-                        .tint(if is_connected {
-                            sereal_colors::UI_WHITE.to_egui_color32()
-                        } else {
-                            ui.visuals().text_color()
-                        })
-                };
-
-                let connect_button = egui::Button::image(connect_icon).fill(if is_connected {
-                    if is_physical_connected {
-                        sereal_colors::UI_GREEN.to_egui_color32()
-                    } else {
-                        sereal_colors::UI_RED.to_egui_color32()
-                    }
-                } else {
-                    ui.visuals().code_bg_color
-                });
-
-                if ui
-                    .add(connect_button)
-                    .on_hover_text(if is_connected {
-                        "Disconnect"
-                    } else {
-                        "Connect"
-                    })
-                    .clicked()
                 {
-                    if !is_connected {
-                        // 接続処理
-                        match service.connect(&self.port_name, self.baud_rate) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                eprintln!("Error:{e}");
-                            }
+                    let is_physical_connected = {
+                        let service = self.serial_service.lock().unwrap();
+                        service.is_physical_connected(&self.port_name)
+                    };
+
+                    let is_connected = {
+                        let service = self.serial_service.lock().unwrap();
+                        service.is_connected(&self.port_name)
+                    };
+
+                    let connect_icon = if is_connected && !is_physical_connected {
+                        egui::Image::new(egui::include_image!("../../assets/disconnect.svg"))
+                            .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
+                            .tint(sereal_colors::UI_WHITE.to_egui_color32())
+                    } else {
+                        egui::Image::new(egui::include_image!("../../assets/connect.svg"))
+                            .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
+                            .tint(if is_connected {
+                                sereal_colors::UI_WHITE.to_egui_color32()
+                            } else {
+                                ui.visuals().text_color()
+                            })
+                    };
+
+                    let connect_button = egui::Button::image(connect_icon).fill(if is_connected {
+                        if is_physical_connected {
+                            sereal_colors::UI_GREEN.to_egui_color32()
+                        } else {
+                            sereal_colors::UI_RED.to_egui_color32()
                         }
                     } else {
-                        // 切断処理
-                        service.disconnect(&self.port_name);
+                        ui.visuals().code_bg_color
+                    });
+
+                    if ui
+                        .add(connect_button)
+                        .on_hover_text(if is_connected {
+                            "Disconnect"
+                        } else {
+                            "Connect"
+                        })
+                        .clicked()
+                    {
+                        let mut service = self.serial_service.lock().unwrap();
+                        if !is_connected {
+                            // 接続処理
+                            match service.connect(&self.port_name, self.baud_rate) {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    eprintln!("Error:{e}");
+                                }
+                            }
+                        } else {
+                            // 切断処理
+                            service.disconnect(&self.port_name);
+                        }
                     }
                 }
-
                 // クリアボタン
                 let clear_button = egui::Button::image(
                     egui::Image::new(egui::include_image!("../../assets/eraser.svg"))
@@ -188,5 +220,22 @@ impl SerialView {
 
     pub fn get_port_name(&self) -> String {
         self.port_name.to_string()
+    }
+
+    fn disconnect_and_connect(
+        &self,
+        disconnect_port_name: &str,
+        connect_port_name: &str,
+        connect_baud_rate: BaudRate,
+    ) {
+        let mut service = self.serial_service.lock().unwrap();
+
+        service.disconnect(disconnect_port_name);
+        match service.connect(connect_port_name, connect_baud_rate) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error:{e}");
+            }
+        }
     }
 }
