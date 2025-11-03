@@ -1,6 +1,7 @@
 use super::types::BaudRate;
 use getset::{Getters, MutGetters};
 use serialport;
+use std::sync::Mutex;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, atomic::AtomicBool, mpsc};
 use std::thread::{self, JoinHandle};
@@ -16,9 +17,9 @@ pub struct Controller {
     #[get_mut = "pub"]
     baud_rate: BaudRate,
     is_running_thread: Arc<AtomicBool>,
-    is_available_port: Arc<AtomicBool>,
+    is_available_port: Arc<Mutex<Option<bool>>>, // ポートとのアクセスの可否と未試行を区別するためにOptionで宣言
     pub receiver: Option<mpsc::Receiver<String>>, // とりあえず
-    read_thread_handle: Option<JoinHandle<()>>,   // スレッドハンドル
+    read_thread_handle: Option<JoinHandle<()>>,  // スレッドハンドル
 }
 
 impl Default for Controller {
@@ -39,7 +40,7 @@ impl Controller {
         let is_running_thread = Arc::new(AtomicBool::new(true));
         self.is_running_thread = is_running_thread.clone();
 
-        let is_available_port = Arc::new(AtomicBool::new(false));
+        let is_available_port = Arc::new(Mutex::new(None));
         self.is_available_port = is_available_port.clone();
 
         let (sender, receiver) = mpsc::channel();
@@ -65,8 +66,6 @@ impl Controller {
 
     pub fn deactivate(&mut self) {
         self.is_running_thread.store(false, Ordering::Relaxed);
-        self.is_available_port.store(false, Ordering::Relaxed);
-
         if let Some(handle) = self.read_thread_handle.take() {
             // .join()はスレッドの終了を待ち、リソースをクリーンアップする
             if handle.join().is_err() {
@@ -74,16 +73,24 @@ impl Controller {
             }
         }
 
+        let mut is_available = self.is_available_port.lock().unwrap();
+        *is_available = None;
+
         self.receiver = None;
         println!("Disconnected {}", self.port_name);
     }
 
     pub fn is_activate(&self) -> bool {
-        self.is_running_thread.load(Ordering::Relaxed)
+        let is_available = self.is_available_port.lock().unwrap();
+        match *is_available {
+            None => false,
+            Some(_) => self.is_running_thread.load(Ordering::Relaxed),
+        }
     }
 
     pub fn is_physical_connected(&self) -> bool {
-        self.is_available_port.load(Ordering::Relaxed)
+        let is_available = self.is_available_port.lock().unwrap();
+        is_available.unwrap_or(false)
     }
 
     pub fn get_port_name(&self) -> String {
@@ -95,7 +102,7 @@ fn connection_thread_main(
     port_name: String,
     baud_rate: u32,
     is_running_thread: Arc<AtomicBool>,
-    is_available_port: Arc<AtomicBool>,
+    is_available_port: Arc<Mutex<Option<bool>>>,
     sender: mpsc::Sender<String>,
 ) {
     const RETRY_INTERVAL_MS: u64 = 500;
@@ -104,18 +111,26 @@ fn connection_thread_main(
     while is_running_thread.load(Ordering::Relaxed) {
         let mut port = match serialport::new(&port_name, baud_rate).open() {
             Ok(p) => {
-                is_available_port.store(true, Ordering::Relaxed);
+                let mut is_available = is_available_port.lock().unwrap();
+                *is_available = Some(true);
                 println!("Port {} opened", port_name);
                 p // 開いたポートを返す
             }
             Err(_) => {
                 thread::sleep(retry_interval);
+                let mut is_available = is_available_port.lock().unwrap();
+                *is_available = Some(false);
                 continue;
             }
         };
 
         // ポートが開いている間、通信を続ける
-        while is_available_port.load(Ordering::Relaxed) {
+        while {
+            is_running_thread.load(Ordering::Relaxed) && {
+                let guard = is_available_port.lock().unwrap();
+                matches!(*guard, Some(true))
+            }
+        } {
             match port.bytes_to_read() {
                 Ok(bytes_to_read) if 0 < bytes_to_read => {
                     let mut receive_buffer = vec![0; bytes_to_read as usize];
@@ -143,7 +158,8 @@ fn connection_thread_main(
                 }
                 Err(_) => {
                     // デバイスと通信できなかった
-                    is_available_port.store(false, Ordering::Relaxed);
+                    let mut is_available = is_available_port.lock().unwrap();
+                    *is_available = Some(false);
                     break;
                 }
                 _ => {
