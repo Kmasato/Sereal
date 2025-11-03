@@ -129,13 +129,14 @@ impl SerialView {
                         service.is_connected(&self.port_name)
                     };
 
+                    const CONNECT_BUTTON_SIZE: egui::Vec2 = egui::Vec2 { x: 18.0, y: 18.0 };
                     let connect_icon = if is_connected && !is_physical_connected {
                         egui::Image::new(egui::include_image!("../../assets/disconnect.svg"))
-                            .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
+                            .fit_to_exact_size(CONNECT_BUTTON_SIZE)
                             .tint(sereal_colors::UI_WHITE.to_egui_color32())
                     } else {
                         egui::Image::new(egui::include_image!("../../assets/connect.svg"))
-                            .fit_to_exact_size(egui::Vec2 { x: 20.0, y: 20.0 })
+                            .fit_to_exact_size(CONNECT_BUTTON_SIZE)
                             .tint(if is_connected {
                                 sereal_colors::UI_WHITE.to_egui_color32()
                             } else {
@@ -178,9 +179,10 @@ impl SerialView {
                     }
                 }
                 // クリアボタン
+                const ERASER_BUTTON_SIZE: egui::Vec2 = egui::Vec2 { x: 15.0, y: 15.0 };
                 let clear_button = egui::Button::image(
                     egui::Image::new(egui::include_image!("../../assets/eraser.svg"))
-                        .fit_to_exact_size(egui::Vec2 { x: 15.0, y: 15.0 })
+                        .fit_to_exact_size(ERASER_BUTTON_SIZE)
                         .tint(ui.visuals().text_color()),
                 );
                 if ui
