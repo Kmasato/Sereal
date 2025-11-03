@@ -68,20 +68,20 @@ impl SerialView {
 
         ui.vertical(|ui| {
             // SerialPort を選択する ComboBox を用意
-            let port_combo_box =
-                egui::ComboBox::from_id_salt("SerialPort").selected_text(self.port_name.clone());
+            let available_ports = {
+                let service = self.serial_service.lock().unwrap();
+                service.get_available_ports(Some(&self.port_name))
+            };
 
-            // BaudRate を選択する ComboBox を用意
-            let baud_rate_combo_box = egui::ComboBox::from_id_salt("BaudRate")
-                .selected_text(std::format!("{}", self.baud_rate));
+            // NOTE:#56 ComboBoxがリサイズしない不具合のWA
+            let combo_box_id =
+                ui.make_persistent_id(format!("port_combo_box_with_{}", available_ports.len()));
+            let port_combo_box =
+                egui::ComboBox::from_id_salt(combo_box_id).selected_text(self.port_name.clone());
 
             ui.horizontal(|ui| {
                 // SerialPort を選択する ComboBox の描画
                 port_combo_box.show_ui(ui, |ui| {
-                    let available_ports = {
-                        let service = self.serial_service.lock().unwrap();
-                        service.get_available_ports(Some(&self.port_name))
-                    };
                     if available_ports.is_empty() {
                         ui.label("No Serial Ports found.");
                     } else {
@@ -100,6 +100,10 @@ impl SerialView {
                         }
                     }
                 });
+
+                // BaudRate を選択する ComboBox を用意
+                let baud_rate_combo_box = egui::ComboBox::from_id_salt("BaudRate")
+                    .selected_text(std::format!("{}", self.baud_rate));
 
                 // BaudRate を選択する ComboBox の描画
                 baud_rate_combo_box.show_ui(ui, |ui| {
