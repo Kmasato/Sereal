@@ -47,7 +47,7 @@ impl SerialView {
         {
             let service = self.serial_service.lock().unwrap();
             if let Some(controller) = service.get_controller(&self.port_name) {
-                if let Some(receiver) = &controller.receiver {
+                if let Some(receiver) = &controller.received_data_receiver {
                     for text in receiver.try_iter() {
                         self.received_text.push_str(&text);
                         if text.contains('\n') {
