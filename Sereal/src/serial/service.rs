@@ -49,6 +49,12 @@ impl SerialService {
                 .map_or(false, |controller| controller.is_physical_connected())
     }
 
+    pub fn send(&self, port_name: &str, data: String) {
+        if let Some(controller) = self.get_controller(port_name) {
+            controller.send(data);
+        }
+    }
+
     // TODO: 将来的に非公開にする
     pub fn get_controller(&self, port_name: &str) -> Option<&Controller> {
         self.controllers.get(port_name)
