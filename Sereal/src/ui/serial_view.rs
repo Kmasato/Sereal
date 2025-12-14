@@ -14,6 +14,7 @@ pub struct SerialView {
     port_name: String,
     baud_rate: serial::BaudRate,
     received_text: String,
+    send_text: String,
     received_line_count: usize,
     formatter: ansi_formatter::AnsiFormatter,
     is_autoscroll_enabled: bool,
@@ -36,6 +37,7 @@ impl SerialView {
             port_name,
             baud_rate: serial::BaudRate::default(),
             received_text: String::new(),
+            send_text: String::new(),
             received_line_count: 0,
             formatter: ansi_formatter::AnsiFormatter::default(),
             is_autoscroll_enabled: true,
@@ -47,7 +49,7 @@ impl SerialView {
         {
             let service = self.serial_service.lock().unwrap();
             if let Some(controller) = service.get_controller(&self.port_name) {
-                if let Some(receiver) = &controller.receiver {
+                if let Some(receiver) = &controller.received_data_receiver {
                     for text in receiver.try_iter() {
                         self.received_text.push_str(&text);
                         if text.contains('\n') {
@@ -197,6 +199,26 @@ impl SerialView {
                     self.formatter.reset();
                     self.received_text.clear();
                     self.received_line_count = 0;
+                }
+            });
+        });
+
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                let text_box = ui.add_sized(
+                    [ui.available_width() - 50.0, ui.available_height()],
+                    egui::TextEdit::singleline(&mut self.send_text)
+                        .background_color(ui.visuals().code_bg_color)
+                        .hint_text("Type in a message to send to the serial port"),
+                );
+
+                if ui.add(egui::Button::new("Send")).clicked()
+                    || text_box.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                {
+                    let service = self.serial_service.lock().unwrap();
+                    let mut text_to_send = std::mem::take(&mut self.send_text);
+                    text_to_send.push('\n');
+                    service.send(&self.port_name.clone(), text_to_send);
                 }
             });
         });

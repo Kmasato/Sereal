@@ -18,8 +18,9 @@ pub struct Controller {
     baud_rate: BaudRate,
     is_running_thread: Arc<AtomicBool>,
     is_available_port: Arc<Mutex<Option<bool>>>, // ポートとのアクセスの可否と未試行を区別するためにOptionで宣言
-    pub receiver: Option<mpsc::Receiver<String>>, // とりあえず
-    read_thread_handle: Option<JoinHandle<()>>,  // スレッドハンドル
+    pub received_data_receiver: Option<mpsc::Receiver<String>>, // TODO: 直接公開しないようにする
+    send_data_sender: Option<mpsc::Sender<Vec<u8>>>,
+    read_thread_handle: Option<JoinHandle<()>>, // スレッドハンドル
 }
 
 impl Default for Controller {
@@ -29,7 +30,8 @@ impl Default for Controller {
             baud_rate: BaudRate::BaudRate115200, // TODO: serialport::SerialPortを用意し、そっちで管理する
             is_running_thread: Arc::default(),
             is_available_port: Arc::default(),
-            receiver: None,
+            received_data_receiver: None,
+            send_data_sender: None,
             read_thread_handle: None,
         }
     }
@@ -43,8 +45,13 @@ impl Controller {
         let is_available_port = Arc::new(Mutex::new(None));
         self.is_available_port = is_available_port.clone();
 
-        let (sender, receiver) = mpsc::channel();
-        self.receiver = Some(receiver);
+        // 受信用のチャンネル
+        let (received_sender, received_receiver) = mpsc::channel();
+        self.received_data_receiver = Some(received_receiver);
+
+        // 送信用のチャンネル
+        let (send_sender, send_receiver) = mpsc::channel::<Vec<u8>>();
+        self.send_data_sender = Some(send_sender);
 
         let port_name = self.port_name.clone();
         let baud_rate = self.baud_rate as u32;
@@ -55,7 +62,8 @@ impl Controller {
                 baud_rate,
                 is_running_thread,
                 is_available_port,
-                sender,
+                received_sender,
+                send_receiver,
             );
         });
 
@@ -76,7 +84,7 @@ impl Controller {
         let mut is_available = self.is_available_port.lock().unwrap();
         *is_available = None;
 
-        self.receiver = None;
+        self.received_data_receiver = None;
         println!("Disconnected {}", self.port_name);
     }
 
@@ -96,6 +104,17 @@ impl Controller {
     pub fn get_port_name(&self) -> String {
         self.port_name.clone()
     }
+
+    pub fn send(&self, data: String) {
+        if let Some(sender) = &self.send_data_sender {
+            match sender.send(data.as_bytes().to_vec()) {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Sender Error:{e}");
+                }
+            }
+        }
+    }
 }
 
 fn connection_thread_main(
@@ -103,7 +122,8 @@ fn connection_thread_main(
     baud_rate: u32,
     is_running_thread: Arc<AtomicBool>,
     is_available_port: Arc<Mutex<Option<bool>>>,
-    sender: mpsc::Sender<String>,
+    received_sender: mpsc::Sender<String>,
+    send_receiver: mpsc::Receiver<Vec<u8>>,
 ) {
     const RETRY_INTERVAL_MS: u64 = 500;
     let retry_interval = Duration::from_millis(RETRY_INTERVAL_MS);
@@ -131,6 +151,7 @@ fn connection_thread_main(
                 matches!(*guard, Some(true))
             }
         } {
+            // 受信処理
             match port.bytes_to_read() {
                 Ok(bytes_to_read) if 0 < bytes_to_read => {
                     let mut receive_buffer = vec![0; bytes_to_read as usize];
@@ -138,7 +159,7 @@ fn connection_thread_main(
                         Ok(got_bytes) => {
                             let received =
                                 String::from_utf8_lossy(&receive_buffer[..got_bytes]).to_string();
-                            if sender.send(received).is_err() {
+                            if received_sender.send(received).is_err() {
                                 break;
                             };
                         }
@@ -164,6 +185,16 @@ fn connection_thread_main(
                 }
                 _ => {
                     // 0 バイトが返ってきた場合
+                }
+            }
+
+            // 送信処理
+            if let Ok(data) = send_receiver.try_recv() {
+                match port.write_all(&data) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        eprintln!("Write Error: {e}");
+                    }
                 }
             }
         }
