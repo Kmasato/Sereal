@@ -14,6 +14,7 @@ pub struct SerialView {
     port_name: String,
     baud_rate: serial::BaudRate,
     received_text: String,
+    last_received_id: u64,
     send_text: String,
     received_line_count: usize,
     formatter: ansi_formatter::AnsiFormatter,
@@ -37,6 +38,7 @@ impl SerialView {
             port_name,
             baud_rate: serial::BaudRate::default(),
             received_text: String::new(),
+            last_received_id: 0,
             send_text: String::new(),
             received_line_count: 0,
             formatter: ansi_formatter::AnsiFormatter::default(),
@@ -48,14 +50,18 @@ impl SerialView {
         // シリアルの受信処理
         {
             let service = self.serial_service.lock().unwrap();
-            if let Some(controller) = service.get_controller(&self.port_name) {
-                if let Some(receiver) = &controller.received_data_receiver {
-                    for text in receiver.try_iter() {
-                        self.received_text.push_str(&text);
-                        if text.contains('\n') {
-                            self.received_line_count += 1;
-                        }
+            for received_data in service
+                .get_received_data(&self.port_name, serial::types::MAX_RECEIVED_DATA_SIZE as u8)
+                .iter()
+                .rev()
+            {
+                if self.last_received_id < received_data.id {
+                    let text = received_data.text.clone();
+                    self.received_text.push_str(&text);
+                    if text.contains('\n') {
+                        self.received_line_count += 1;
                     }
+                    self.last_received_id = received_data.id;
                 }
             }
         }
@@ -94,8 +100,8 @@ impl SerialView {
                                 .changed()
                             {
                                 self.disconnect_and_connect(
-                                    &last_port_name,
-                                    &self.port_name,
+                                    last_port_name.clone().as_str(),
+                                    self.port_name.clone().as_str(),
                                     self.baud_rate,
                                 );
                             }
@@ -115,8 +121,8 @@ impl SerialView {
                             .changed()
                         {
                             self.disconnect_and_connect(
-                                &self.port_name,
-                                &self.port_name,
+                                self.port_name.clone().as_str(),
+                                self.port_name.clone().as_str(),
                                 self.baud_rate,
                             );
                         }
@@ -181,6 +187,7 @@ impl SerialView {
                         } else {
                             // 切断処理
                             service.disconnect(&self.port_name);
+                            self.last_received_id = 0;
                         }
                     }
                 }
@@ -251,7 +258,7 @@ impl SerialView {
     }
 
     fn disconnect_and_connect(
-        &self,
+        &mut self,
         disconnect_port_name: &str,
         connect_port_name: &str,
         connect_baud_rate: BaudRate,
@@ -259,6 +266,7 @@ impl SerialView {
         let mut service = self.serial_service.lock().unwrap();
 
         service.disconnect(disconnect_port_name);
+        self.last_received_id = 0;
         match service.connect(connect_port_name, connect_baud_rate) {
             Ok(_) => {}
             Err(e) => {
