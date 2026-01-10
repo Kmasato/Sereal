@@ -1,3 +1,5 @@
+use crate::serial::types::ReceivedData;
+
 use super::{controller::Controller, utils};
 use std::collections::HashMap;
 
@@ -55,9 +57,12 @@ impl SerialService {
         }
     }
 
-    // TODO: 将来的に非公開にする
-    pub fn get_controller(&self, port_name: &str) -> Option<&Controller> {
-        self.controllers.get(port_name)
+    pub fn get_received_data(&self, port_name: &str, size: u8) -> Vec<ReceivedData> {
+        if let Some(controller) = self.get_controller(port_name) {
+            controller.get_received_data(size)
+        } else {
+            Vec::new()
+        }
     }
 
     pub fn get_available_ports(&self, self_port_name: Option<&str>) -> Vec<String> {
@@ -74,5 +79,9 @@ impl SerialService {
                 !self.is_connected(&port)
             })
             .collect()
+    }
+
+    fn get_controller(&self, port_name: &str) -> Option<&Controller> {
+        self.controllers.get(port_name)
     }
 }

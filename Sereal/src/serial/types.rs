@@ -24,3 +24,11 @@ impl fmt::Display for BaudRate {
         write!(f, "{}", rate)
     }
 }
+
+#[derive(Default, Clone)]
+pub struct ReceivedData {
+    pub id: u64,
+    pub text: String,
+}
+
+pub const MAX_RECEIVED_DATA_SIZE: usize = 32;

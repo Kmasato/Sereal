@@ -1,6 +1,10 @@
+use crate::serial;
+use crate::serial::types::ReceivedData;
+
 use super::types::BaudRate;
 use getset::{Getters, MutGetters};
 use serialport;
+use std::collections::VecDeque;
 use std::sync::Mutex;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, atomic::AtomicBool, mpsc};
@@ -18,7 +22,7 @@ pub struct Controller {
     baud_rate: BaudRate,
     is_running_thread: Arc<AtomicBool>,
     is_available_port: Arc<Mutex<Option<bool>>>, // ポートとのアクセスの可否と未試行を区別するためにOptionで宣言
-    pub received_data_receiver: Option<mpsc::Receiver<String>>, // TODO: 直接公開しないようにする
+    received_data_queue: Arc<Mutex<VecDeque<ReceivedData>>>,
     send_data_sender: Option<mpsc::Sender<Vec<u8>>>,
     read_thread_handle: Option<JoinHandle<()>>, // スレッドハンドル
 }
@@ -30,7 +34,7 @@ impl Default for Controller {
             baud_rate: BaudRate::BaudRate115200, // TODO: serialport::SerialPortを用意し、そっちで管理する
             is_running_thread: Arc::default(),
             is_available_port: Arc::default(),
-            received_data_receiver: None,
+            received_data_queue: Arc::new(Mutex::new(VecDeque::new())),
             send_data_sender: None,
             read_thread_handle: None,
         }
@@ -45,9 +49,8 @@ impl Controller {
         let is_available_port = Arc::new(Mutex::new(None));
         self.is_available_port = is_available_port.clone();
 
-        // 受信用のチャンネル
-        let (received_sender, received_receiver) = mpsc::channel();
-        self.received_data_receiver = Some(received_receiver);
+        // 受信用のバッファ
+        let received_dequeue = self.received_data_queue.clone();
 
         // 送信用のチャンネル
         let (send_sender, send_receiver) = mpsc::channel::<Vec<u8>>();
@@ -62,7 +65,7 @@ impl Controller {
                 baud_rate,
                 is_running_thread,
                 is_available_port,
-                received_sender,
+                received_dequeue,
                 send_receiver,
             );
         });
@@ -84,7 +87,9 @@ impl Controller {
         let mut is_available = self.is_available_port.lock().unwrap();
         *is_available = None;
 
-        self.received_data_receiver = None;
+        let mut dequeue = self.received_data_queue.lock().unwrap();
+        dequeue.clear();
+
         println!("Disconnected {}", self.port_name);
     }
 
@@ -101,6 +106,7 @@ impl Controller {
         is_available.unwrap_or(false)
     }
 
+    #[allow(dead_code)]
     pub fn get_port_name(&self) -> String {
         self.port_name.clone()
     }
@@ -115,6 +121,17 @@ impl Controller {
             }
         }
     }
+
+    pub fn get_received_data(&self, size: u8) -> Vec<ReceivedData> {
+        let dequeue = self.received_data_queue.lock().unwrap();
+        let mut result = Vec::new();
+        for i in 0..size {
+            if let Some(data) = dequeue.get(i as usize) {
+                result.push(data.clone());
+            }
+        }
+        result
+    }
 }
 
 fn connection_thread_main(
@@ -122,11 +139,12 @@ fn connection_thread_main(
     baud_rate: u32,
     is_running_thread: Arc<AtomicBool>,
     is_available_port: Arc<Mutex<Option<bool>>>,
-    received_sender: mpsc::Sender<String>,
+    received_dequeue: Arc<Mutex<VecDeque<ReceivedData>>>,
     send_receiver: mpsc::Receiver<Vec<u8>>,
 ) {
     const RETRY_INTERVAL_MS: u64 = 500;
     let retry_interval = Duration::from_millis(RETRY_INTERVAL_MS);
+    let mut received_id: u64 = 0;
 
     while is_running_thread.load(Ordering::Relaxed) {
         let mut port = match serialport::new(&port_name, baud_rate).open() {
@@ -159,9 +177,18 @@ fn connection_thread_main(
                         Ok(got_bytes) => {
                             let received =
                                 String::from_utf8_lossy(&receive_buffer[..got_bytes]).to_string();
-                            if received_sender.send(received).is_err() {
-                                break;
+
+                            received_id += 1;
+                            let received_data = ReceivedData {
+                                id: received_id,
+                                text: received.clone(),
                             };
+
+                            let mut dequeue = received_dequeue.lock().unwrap();
+                            if dequeue.len() >= serial::types::MAX_RECEIVED_DATA_SIZE {
+                                dequeue.pop_back();
+                            }
+                            dequeue.push_front(received_data);
                         }
                         Err(e) => {
                             match e.kind() {
