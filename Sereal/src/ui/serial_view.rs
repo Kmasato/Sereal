@@ -78,7 +78,7 @@ impl SerialView {
             // SerialPort を選択する ComboBox を用意
             let available_ports = {
                 let service = self.serial_service.lock().unwrap();
-                service.get_available_ports(Some(&self.port_name))
+                service.get_connectable_ports(Some(&self.port_name))
             };
 
             // NOTE:#56 ComboBoxがリサイズしない不具合のWA
