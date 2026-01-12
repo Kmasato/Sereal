@@ -13,6 +13,7 @@ use crate::serial::service::SerialService;
 
 pub struct AppTabViewer<'a> {
     add_nodes: &'a mut Vec<(egui_dock::SurfaceIndex, egui_dock::NodeIndex)>,
+    app_context: &'a ui::AppContext,
 }
 
 impl TabViewer for AppTabViewer<'_> {
@@ -23,7 +24,7 @@ impl TabViewer for AppTabViewer<'_> {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        tab.ui(ui);
+        tab.ui(ui, self.app_context);
     }
 
     fn on_close(&mut self, _tab: &mut Self::Tab) -> OnCloseResponse {
@@ -49,17 +50,20 @@ enum Theme {
 pub struct MyApp {
     dock_state: DockState<ui::SerialView>,
     serial_service: Arc<std::sync::Mutex<SerialService>>,
+    app_context: ui::AppContext,
     theme: Theme,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         let serial_service = Arc::new(std::sync::Mutex::new(SerialService::default()));
+        let app_context = ui::AppContext::default();
         let initial_tab = ui::SerialView::new("Port 0".to_string(), Arc::clone(&serial_service));
         let dock_state = DockState::new(vec![initial_tab]);
         Self {
             dock_state,
             serial_service,
+            app_context,
             theme: Theme::default(),
         }
     }
@@ -68,6 +72,9 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     // テーマの反映
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // AppContext の更新
+        self.app_context.all_tab_names = self.get_all_tab_names();
+
         match self.theme {
             Theme::System => {
                 if let Some(theme) = ctx.input(|i| i.raw.system_theme) {
@@ -105,6 +112,7 @@ impl eframe::App for MyApp {
                 ctx,
                 &mut AppTabViewer {
                     add_nodes: &mut added_nodes,
+                    app_context: &self.app_context,
                 },
             );
 
@@ -147,6 +155,13 @@ impl MyApp {
             }
             port_index += 1;
         }
+    }
+
+    fn get_all_tab_names(&self) -> Vec<String> {
+        self.dock_state
+            .iter_all_tabs()
+            .map(|((_, _), tab)| tab.get_port_name())
+            .collect()
     }
 }
 

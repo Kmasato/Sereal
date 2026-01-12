@@ -4,6 +4,7 @@ use crate::ansi_formatter;
 use crate::sereal_colors;
 use crate::serial;
 use crate::serial::BaudRate;
+use crate::ui::AppContext;
 use eframe::egui;
 
 const HISTORY_MAX_LINES: usize = 5000;
@@ -46,7 +47,7 @@ impl SerialView {
         }
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, app_context: &AppContext) {
         // シリアルの受信処理
         {
             let service = self.serial_service.lock().unwrap();
@@ -76,10 +77,7 @@ impl SerialView {
 
         ui.vertical(|ui| {
             // SerialPort を選択する ComboBox を用意
-            let available_ports = {
-                let service = self.serial_service.lock().unwrap();
-                service.get_connectable_ports(Some(&self.port_name))
-            };
+            let available_ports = self.get_available_ports(&app_context.all_tab_names);
 
             // NOTE:#56 ComboBoxがリサイズしない不具合のWA
             let combo_box_id =
@@ -273,5 +271,14 @@ impl SerialView {
                 eprintln!("Error:{e}");
             }
         }
+    }
+
+    fn get_available_ports(&self, all_tab_names: &Vec<String>) -> Vec<String> {
+        let service = self.serial_service.lock().unwrap();
+        service
+            .get_connectable_ports(Some(&self.port_name))
+            .into_iter()
+            .filter(|port| !all_tab_names.contains(port))
+            .collect()
     }
 }
