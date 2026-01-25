@@ -42,6 +42,14 @@ Compile the sketch. You need to specify the board identifier for your board. Thi
 arduino-cli compile -b arduino:avr:uno Samples/Device/Arduino/SampleUartLog
 ```
 
+#### "bad CPU type in executable" on Apple Silicon Macs
+
+If you encounter the error "bad CPU type in executable" on an Apple Silicon Mac, you may need to install Rosetta.
+
+```bash
+softwareupdate --install-rosetta
+```
+
 ### 5. Upload the Sketch
 
 First, connect your Arduino board to your PC. Then, find the port it is connected to.
@@ -99,6 +107,14 @@ arduino-cli core search esp32
 
 ```bash
 arduino-cli compile -b arduino:avr:uno Samples/Device/Arduino/SampleUartLog
+```
+
+#### Apple Silicon Macでの "bad CPU type in executable" エラー
+
+Apple Silicon Macで `bad CPU type in executable` エラーが発生する場合、Rosettaのインストールが必要な場合があります。
+
+```bash
+softwareupdate --install-rosetta
 ```
 
 ### 5. スケッチを書き込む
