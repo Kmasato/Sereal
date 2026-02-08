@@ -65,7 +65,7 @@ impl SerialService {
         }
     }
 
-    pub fn get_available_ports(&self, self_port_name: Option<&str>) -> Vec<String> {
+    pub fn get_connectable_ports(&self, self_port_name: Option<&str>) -> Vec<String> {
         let all_ports = utils::list_serial_port();
         all_ports
             .into_iter()
