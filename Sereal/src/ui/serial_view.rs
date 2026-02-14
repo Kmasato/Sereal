@@ -67,14 +67,6 @@ impl SerialView {
             }
         }
 
-        // FIXME:単純に削ると以前のデザイン情報が削られるため直す必要あり
-        if HISTORY_MAX_LINES < self.received_line_count {
-            if let Some(index) = self.received_text.find('\n') {
-                self.received_text.drain(..=index);
-                self.received_line_count -= 1;
-            }
-        }
-
         ui.vertical(|ui| {
             // SerialPort を選択する ComboBox を用意
             let available_ports = self.get_available_ports(&app_context.all_tab_names);
@@ -231,7 +223,7 @@ impl SerialView {
         // コントロール部と表示部の区切り線
         ui.separator();
 
-        egui::ScrollArea::vertical()
+        let scroll_output = egui::ScrollArea::vertical()
             .stick_to_bottom(self.is_autoscroll_enabled)
             .show(ui, |ui| {
                 ui.set_min_width(ui.available_width());
@@ -249,6 +241,23 @@ impl SerialView {
                 });
                 self.formatter.reset();
             });
+
+        let scroll_offset_rate = scroll_output.state.offset.y / scroll_output.content_size.y;
+        let delete_target_rate = 0.95;
+        // スクロールバーが途中にある場合はログを削除しない、
+        // スクロールバーが下の方にあり、自動スクロールしていると思われる場合にバッファを超えた分の削除を行う
+        // FIXME:割合の判定は HISTORY_MAX_LINES によっては正しく機能しないため、他の指標が良い
+        if HISTORY_MAX_LINES < self.received_line_count && delete_target_rate < scroll_offset_rate {
+            while HISTORY_MAX_LINES <= self.received_line_count {
+                if let Some(index) = self.received_text.find('\n') {
+                    // FIXME:単純に削ると以前のデザイン情報が削られるため直す必要あり
+                    self.received_text.drain(..=index);
+                    self.received_line_count -= 1;
+                } else {
+                    break; // 改行が見つからなかったら break
+                }
+            }
+        }
     }
 
     pub fn get_port_name(&self) -> String {
