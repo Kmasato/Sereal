@@ -52,7 +52,10 @@ impl SerialView {
         {
             let service = self.serial_service.lock().unwrap();
             for received_data in service
-                .get_received_data(&self.port_name, serial::types::MAX_RECEIVED_DATA_SIZE as u8)
+                .get_received_data(
+                    &self.port_name,
+                    serial::types::MAX_RECEIVED_DATA_SIZE as u16,
+                )
                 .iter()
                 .rev()
             {

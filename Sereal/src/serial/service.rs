@@ -57,7 +57,7 @@ impl SerialService {
         }
     }
 
-    pub fn get_received_data(&self, port_name: &str, size: u8) -> Vec<ReceivedData> {
+    pub fn get_received_data(&self, port_name: &str, size: u16) -> Vec<ReceivedData> {
         if let Some(controller) = self.get_controller(port_name) {
             controller.get_received_data(size)
         } else {
