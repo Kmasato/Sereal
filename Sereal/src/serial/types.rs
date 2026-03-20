@@ -31,4 +31,4 @@ pub struct ReceivedData {
     pub text: String,
 }
 
-pub const MAX_RECEIVED_DATA_SIZE: usize = 32;
+pub const MAX_RECEIVED_DATA_SIZE: usize = 2048;

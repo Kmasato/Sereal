@@ -122,7 +122,7 @@ impl Controller {
         }
     }
 
-    pub fn get_received_data(&self, size: u8) -> Vec<ReceivedData> {
+    pub fn get_received_data(&self, size: u16) -> Vec<ReceivedData> {
         let dequeue = self.received_data_queue.lock().unwrap();
         let mut result = Vec::new();
         for i in 0..size {
