@@ -216,8 +216,7 @@ impl SerialView {
                     || text_box.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))
                 {
                     let service = self.serial_service.lock().unwrap();
-                    let mut text_to_send = std::mem::take(&mut self.send_text);
-                    text_to_send.push('\n');
+                    let text_to_send = std::mem::take(&mut self.send_text);
                     service.send(&self.port_name.clone(), text_to_send);
                 }
             });
