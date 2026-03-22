@@ -20,6 +20,7 @@ pub struct SerialView {
     received_line_count: usize,
     formatter: ansi_formatter::AnsiFormatter,
     is_autoscroll_enabled: bool,
+    force_scroll_bottom: bool,
 }
 
 impl Drop for SerialView {
@@ -44,6 +45,7 @@ impl SerialView {
             received_line_count: 0,
             formatter: ansi_formatter::AnsiFormatter::default(),
             is_autoscroll_enabled: true,
+            force_scroll_bottom: false,
         }
     }
 
@@ -200,6 +202,19 @@ impl SerialView {
                     self.received_text.clear();
                     self.received_line_count = 0;
                 }
+
+                // 最下部に移動するボタン
+                const FORCE_BOTTOM_BUTTON_SIZE: egui::Vec2 = egui::Vec2 { x: 15.0, y: 15.0 };
+                let force_scroll_bottom_button = egui::Button::image(
+                    egui::Image::new(egui::include_image!("../../assets/scroll_bottom.svg"))
+                        .fit_to_exact_size(FORCE_BOTTOM_BUTTON_SIZE)
+                        .tint(ui.visuals().text_color()),
+                );
+
+                self.force_scroll_bottom = ui
+                    .add(force_scroll_bottom_button)
+                    .on_hover_text("Move to bottom")
+                    .clicked();
             });
         });
 
@@ -239,6 +254,11 @@ impl SerialView {
                                 ui.label(rich_text);
                             }
                         });
+                    }
+
+                    let response = ui.allocate_response(egui::Vec2::ZERO, egui::Sense::hover());
+                    if self.force_scroll_bottom {
+                        response.scroll_to_me(Some(egui::Align::TOP));
                     }
                 });
                 self.formatter.reset();
