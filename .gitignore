@@ -28,3 +28,13 @@ build/
 # Added by cargo
 
 /target
+
+# Sereal (Tauri/Svelte)
+**/node_modules/
+Sereal/src-tauri/gen/
+Sereal/.svelte-kit/
+Sereal/build/
+Sereal/package/
+.env*
+!*.env.example
+vite.config.*.timestamp-*
