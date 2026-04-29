@@ -1,28 +1,68 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { Terminal } from "@xterm/xterm";
+  import { FitAddon } from "@xterm/addon-fit";
 
-  let ports: string[] = [];
+  import "@xterm/xterm/css/xterm.css";
 
-  onMount(async () => {
-    try {
-      ports = await invoke("get_ports");
-      console.log("Available ports:", ports);
-    } catch (error) {
-      console.error("Failed to fetch ports:", error);
+  let terminalElement: HTMLDivElement;
+  let term: Terminal;
+  let fitAddon: FitAddon;
+
+  onMount(() => {
+    term = new Terminal({
+      convertEol: true,
+      cursorBlink: true,
+      theme: {
+        background: "#1e1e1e",
+      },
+    });
+
+    fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+
+    term.open(terminalElement);
+
+    fitAddon.fit();
+
+    term.write("Hello Sereal");
+
+    const handleResize = () => fitAddon.fit();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  });
+
+  onDestroy(() => {
+    if (term) {
+      term.dispose();
     }
   });
 </script>
 
 <main>
-  <h1>Available Serial Ports</h1>
-  {#if ports.length == 0}
-    <p>No ports found.</p>
-  {:else}
-    <ul>
-      {#each ports as port}
-        <li>{ports}</li>
-      {/each}
-    </ul>
-  {/if}
+  <div class="terminal-container" bind:this={terminalElement}></div>
 </main>
+
+<style>
+  main {
+    width: 100vw;
+    height: 100vh;
+    background-color: #1e1e1e;
+    margin: 0;
+  }
+
+  .terminal-container {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  :global(.xterm) {
+    height: 100%;
+  }
+</style>
