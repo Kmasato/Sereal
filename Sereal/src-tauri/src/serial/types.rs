@@ -13,6 +13,14 @@ impl BaudRate {
             .iter()
             .copied()
     }
+
+    pub fn from_u32(baud_rate: u32) -> Self {
+        match baud_rate {
+            9600 => BaudRate::BaudRate9600,
+            115200 => BaudRate::BaudRate115200,
+            _ => BaudRate::default(),
+        }
+    }
 }
 
 impl fmt::Display for BaudRate {
