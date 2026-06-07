@@ -99,6 +99,6 @@ impl TransportServer {
 
     fn remove_client(&self, port_name: &String) {
         let mut clients = self.clients.lock().unwrap();
-        clients.pop_if(|client| &client.port_name == port_name);
+        clients.retain(|client| &client.port_name != port_name);
     }
 }

@@ -15,7 +15,10 @@ fn connect(
     baud_rate: u32,
 ) {
     let server = server.lock().unwrap();
-    let handler = Arc::new(adapter::TauriDataHandler::new(app_handle));
+    let handler = Arc::new(adapter::TauriDataHandler::new(
+        app_handle,
+        port_name.clone(),
+    ));
     server.connect(&port_name, baud_rate, handler);
 }
 
