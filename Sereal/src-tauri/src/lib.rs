@@ -19,8 +19,10 @@ fn connect(
     server.connect(&port_name, baud_rate, handler);
 }
 
-// #[tauri::command]
-// fn disconnect()
+#[tauri::command]
+fn disconnect(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, port_name: String) {
+    server.lock().unwrap().disconnect(&port_name);
+}
 
 #[tauri::command]
 fn get_ports(service: tauri::State<'_, Arc<Mutex<SerialService>>>) -> Vec<String> {
@@ -39,7 +41,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(serial_service)
         .manage(server)
-        .invoke_handler(tauri::generate_handler![get_ports, connect])
+        .invoke_handler(tauri::generate_handler![get_ports, connect, disconnect])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

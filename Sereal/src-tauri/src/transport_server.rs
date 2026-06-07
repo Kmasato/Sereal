@@ -1,4 +1,5 @@
 use crate::serial;
+use crate::serial::service;
 use crate::serial::service::SerialService;
 use crate::serial::BaudRate;
 use crate::transport::DataUpdateHandler;
@@ -77,6 +78,16 @@ impl TransportServer {
         }
     }
 
+    pub fn disconnect(&self, port_name: &String) {
+        let mut service = self.serial_service.lock().unwrap();
+        if service.is_connected(&port_name) {
+            service.disconnect(&port_name);
+        } else {
+            eprintln!("Failed to disconnect, because not find {port_name}.")
+        }
+        self.remove_client(port_name);
+    }
+
     fn add_client(&self, port_name: String, handler: Arc<dyn DataUpdateHandler>) {
         let mut clients = self.clients.lock().unwrap();
         clients.push(SessionClient {
@@ -84,5 +95,10 @@ impl TransportServer {
             last_received_id: 0,
             handler: handler,
         });
+    }
+
+    fn remove_client(&self, port_name: &String) {
+        let mut clients = self.clients.lock().unwrap();
+        clients.pop_if(|client| &client.port_name == port_name);
     }
 }

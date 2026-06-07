@@ -31,6 +31,16 @@
     }
   }
 
+  async function Disconnect() {
+    if (!selectedPort) return;
+    try {
+      await invoke("disconnect", { portName: selectedPort });
+      console.log("Disconnected from", selectedPort);
+    } catch (e) {
+      console.error("Failed to disconnect:", e);
+    }
+  }
+
   onMount(() => {
     term = new Terminal({
       convertEol: true,
@@ -82,6 +92,7 @@
       {/if}
     </select>
     <button on:click={Connect} disabled={!selectedPort}> Connect </button>
+    <button on:click={Disconnect} disabled={!selectedPort}> Disconnect </button>
   </div>
   <div class="terminal-container" bind:this={terminalElement}></div>
 </main>
