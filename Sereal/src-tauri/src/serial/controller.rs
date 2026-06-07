@@ -5,9 +5,9 @@ use super::types::BaudRate;
 use getset::{Getters, MutGetters};
 use serialport;
 use std::collections::VecDeque;
-use std::sync::Mutex;
 use std::sync::atomic::Ordering;
-use std::sync::{Arc, atomic::AtomicBool, mpsc};
+use std::sync::Mutex;
+use std::sync::{atomic::AtomicBool, mpsc, Arc};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use std::u32;
@@ -188,7 +188,7 @@ fn connection_thread_main(
                             if dequeue.len() >= serial::types::MAX_RECEIVED_DATA_SIZE {
                                 dequeue.pop_back();
                             }
-                            dequeue.push_front(received_data);
+                            dequeue.push_back(received_data);
                         }
                         Err(e) => {
                             match e.kind() {
