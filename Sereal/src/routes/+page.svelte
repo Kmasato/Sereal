@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, mount, unmount } from "svelte";
   import { GoldenLayout, type ComponentItemConfig } from "golden-layout";
-  import SerialPortTab from "$lib/SerialPortTab.svelte";
+  import SerialPortTab from "$lib/components/SerialPortTab.svelte";
   import { invoke } from "@tauri-apps/api/core";
 
   import "golden-layout/dist/css/goldenlayout-base.css";
