@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::fmt;
 
 #[derive(Default, Debug, PartialEq, Clone, Copy)]
@@ -40,3 +41,11 @@ pub struct ReceivedData {
 }
 
 pub const MAX_RECEIVED_DATA_SIZE: usize = 2048;
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum ConnectionStatus {
+    Connected,            // 接続状態 (通信可能)
+    Disconnected,         // アイドル状態 (物理的に接続、受信を停止)
+    PhysicalDisconnected, // 切断状態 (物理的に切断)
+}

@@ -8,18 +8,30 @@ use crate::transport_server::TransportServer;
 use std::sync::{Arc, Mutex};
 
 #[tauri::command]
-fn connect(
+fn register_handler(
     app_handle: tauri::AppHandle,
     server: tauri::State<'_, Arc<Mutex<TransportServer>>>,
     port_name: String,
-    baud_rate: u32,
 ) {
-    let server = server.lock().unwrap();
     let handler = Arc::new(adapter::TauriDataHandler::new(
         app_handle,
         port_name.clone(),
     ));
-    server.connect(&port_name, baud_rate, handler);
+    server.lock().unwrap().register_handler(&port_name, handler);
+}
+
+#[tauri::command]
+fn unregister_handler(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, port_name: String) {
+    server.lock().unwrap().unregister_handler(&port_name);
+}
+
+#[tauri::command]
+fn connect(
+    server: tauri::State<'_, Arc<Mutex<TransportServer>>>,
+    port_name: String,
+    baud_rate: u32,
+) {
+    server.lock().unwrap().connect(&port_name, baud_rate);
 }
 
 #[tauri::command]
@@ -44,7 +56,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(serial_service)
         .manage(server)
-        .invoke_handler(tauri::generate_handler![get_ports, connect, disconnect])
+        .invoke_handler(tauri::generate_handler![
+            register_handler,
+            unregister_handler,
+            connect,
+            disconnect,
+            get_ports,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,6 +1,6 @@
 use crate::serial;
-use crate::serial::service;
 use crate::serial::service::SerialService;
+use crate::serial::types::ConnectionStatus;
 use crate::serial::BaudRate;
 use crate::transport::DataUpdateHandler;
 use std::sync::Arc;
@@ -11,6 +11,7 @@ use std::time::Duration;
 struct SessionClient {
     port_name: String,
     last_received_id: u64,
+    last_connection_status: ConnectionStatus,
     handler: Arc<dyn DataUpdateHandler>,
 }
 
@@ -40,6 +41,17 @@ impl TransportServer {
             let mut client_list = clients.lock().unwrap();
 
             for client in client_list.iter_mut() {
+                // 接続ステータスの更新
+                let current_status = Self::get_connection_status(&service, &client.port_name);
+                if current_status != client.last_connection_status {
+                    client.last_connection_status = current_status;
+                    client
+                        .handler
+                        .on_status_changed(client.last_connection_status.clone());
+                    println!("State changed {:?}", client.last_connection_status);
+                }
+
+                // 受信データの更新
                 let received_data = service.get_received_data(
                     &client.port_name,
                     serial::types::MAX_RECEIVED_DATA_SIZE as u16,
@@ -61,8 +73,15 @@ impl TransportServer {
         });
     }
 
-    pub fn connect(&self, port_name: &String, baud_rate: u32, handler: Arc<dyn DataUpdateHandler>) {
+    pub fn register_handler(&self, port_name: &String, handler: Arc<dyn DataUpdateHandler>) {
         self.add_client(port_name.clone(), handler);
+    }
+
+    pub fn unregister_handler(&self, port_name: &String) {
+        self.remove_client(port_name);
+    }
+
+    pub fn connect(&self, port_name: &String, baud_rate: u32) {
         let mut service = self.serial_service.lock().unwrap();
         if !service.is_connected(&port_name) {
             match service.connect(&port_name, BaudRate::from_u32(baud_rate)) {
@@ -85,7 +104,6 @@ impl TransportServer {
         } else {
             eprintln!("Failed to disconnect, because not find {port_name}.")
         }
-        self.remove_client(port_name);
     }
 
     fn add_client(&self, port_name: String, handler: Arc<dyn DataUpdateHandler>) {
@@ -93,6 +111,7 @@ impl TransportServer {
         clients.push(SessionClient {
             port_name: port_name,
             last_received_id: 0,
+            last_connection_status: ConnectionStatus::Disconnected,
             handler: handler,
         });
     }
@@ -100,5 +119,22 @@ impl TransportServer {
     fn remove_client(&self, port_name: &String) {
         let mut clients = self.clients.lock().unwrap();
         clients.retain(|client| &client.port_name != port_name);
+    }
+
+    fn get_connection_status(
+        serial_service: &SerialService,
+        port_name: &String,
+    ) -> ConnectionStatus {
+        let is_physical_connected = serial_service.is_physical_connected(port_name);
+        let is_connected = serial_service.is_connected(port_name);
+
+        if is_connected {
+            if is_physical_connected {
+                return ConnectionStatus::Connected;
+            } else {
+                return ConnectionStatus::PhysicalDisconnected;
+            }
+        }
+        return ConnectionStatus::Disconnected;
     }
 }
