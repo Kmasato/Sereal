@@ -22,7 +22,7 @@
   let tabCounter = 0;
 
   // 新規の接続用空タブを追加する関数
-  function addConnectionTab() {
+  function addConnectionTab(targetStack?: any) {
     tabCounter++;
     const tabId = `new-connection-${tabCounter}`;
 
@@ -33,7 +33,9 @@
       title: "New Connection",
     };
 
-    if (layout.rootItem) {
+    if (targetStack) {
+      targetStack.addItem(itemConfig);
+    } else if (layout.rootItem) {
       layout.addItem(itemConfig);
     } else {
       layout.loadLayout({
@@ -151,7 +153,7 @@
               // クリックで新規の空タブを追加
               plusBtn.addEventListener("click", (e) => {
                 e.stopPropagation(); // イベントの親伝播を防ぐ
-                addConnectionTab();
+                addConnectionTab(stack);
               });
 
               tabsContainer.appendChild(plusBtn);
