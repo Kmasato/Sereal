@@ -100,7 +100,14 @@ impl TransportServer {
     pub fn disconnect(&self, port_name: &String) {
         let mut service = self.serial_service.lock().unwrap();
         if service.is_connected(&port_name) {
+            // 接続を切断
             service.disconnect(&port_name);
+
+            // 受信したレポートIDをリセット
+            let mut clients = self.clients.lock().unwrap();
+            if let Some(client) = clients.iter_mut().find(|c| &c.port_name == port_name) {
+                client.last_received_id = 0;
+            }
         } else {
             eprintln!("Failed to disconnect, because not find {port_name}.")
         }
