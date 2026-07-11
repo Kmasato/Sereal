@@ -1,15 +1,21 @@
 use crate::transport::DataUpdateHandler;
 use tauri::Emitter;
 
+pub struct TauriDataHandler {
+    app_handle: tauri::AppHandle,
+    port_name: String,
+}
+
 #[derive(Clone, serde::Serialize)]
 struct SerialEventPayload {
     port_name: String,
     text: String,
 }
 
-pub struct TauriDataHandler {
-    app_handle: tauri::AppHandle,
+#[derive(Clone, serde::Serialize)]
+struct ConnectionStatusPayload {
     port_name: String,
+    status: crate::serial::types::ConnectionStatus,
 }
 
 impl TauriDataHandler {
@@ -33,5 +39,13 @@ impl DataUpdateHandler for TauriDataHandler {
 
     fn on_error(&self, message: String) {
         let _ = self.app_handle.emit("serial-error", message);
+    }
+
+    fn on_status_changed(&self, status: crate::serial::types::ConnectionStatus) {
+        let payload = ConnectionStatusPayload {
+            port_name: self.port_name.clone(),
+            status: status,
+        };
+        let _ = self.app_handle.emit("connection-status-changed", payload);
     }
 }

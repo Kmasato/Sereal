@@ -5,6 +5,9 @@
     import { listen } from "@tauri-apps/api/event";
     import { invoke } from "@tauri-apps/api/core";
 
+    import ConnectionButton from "$lib/components/ConnectionButton.svelte";
+    import type { ConnectionState } from "./types";
+
     import "@xterm/xterm/css/xterm.css";
 
     let { initialPortName = "", onConnected = null } = $props<{
@@ -15,15 +18,16 @@
     let ports: string[] = $state([]);
     let selectedPort: string = $state(initialPortName);
     let selectedBaudRate: number = $state(115200);
-    let isConnected: boolean = $state(false);
+    let connectionState: ConnectionState = $state("invalid");
 
     let termiailElement: HTMLDivElement;
     let terminal: Terminal | null = null;
     let fitAddon: FitAddon | null = null;
     let unlisten: (() => void) | null = null;
+    let unlistenStatus: (() => void) | null = null;
 
     async function refreshPorts() {
-        if (isConnected) return;
+        if (connectionState == "connected") return;
         ports = await invoke("get_ports");
         if (!ports.includes(selectedPort)) {
             selectedPort = ports.length > 0 ? ports[0] : "";
@@ -31,7 +35,7 @@
     }
 
     async function handleConnectToggle() {
-        if (isConnected) {
+        if (connectionState == "connected") {
             await disconnect();
         } else {
             await connect();
@@ -40,22 +44,31 @@
 
     async function connect() {
         if (!selectedPort) return;
+        if (connectionState == "connected") return;
+        if (connectionState == "invalid") {
+            await invoke("register_handler", { portName: selectedPort });
+        }
         try {
-            // 1. バックエンド接続
+            // 接続処理
             await invoke("connect", {
                 portName: selectedPort,
                 baudRate: selectedBaudRate,
             });
             console.log("Connected to", selectedPort);
-            isConnected = true;
 
-            // 2. 接続成功を親に通知 (タイトル変更や次の空タブ生成をトリガー)
+            // 接続成功を親に通知
             if (onConnected) {
                 onConnected(selectedPort);
             }
 
-            // 3. Svelte が DOM を更新して .serialport-tab-container の hidden (display: none)
-            // が解除されるのを待ってからターミナルを初期化し fit() を実行します
+            // 接続直後は Terminal 内で状態の変化を検知できないため、明示的に指定
+            connectionState = "connected";
+
+            if (terminal !== null) {
+                return;
+            }
+
+            // 初回接続時のみ、DOM の hidden 解除をまってターミナルを初期化
             setTimeout(() => {
                 initTerminal();
             }, 50);
@@ -67,13 +80,8 @@
     async function disconnect() {
         if (!selectedPort) return;
         try {
-            // 1. バックエンド切断
             await invoke("disconnect", { portName: selectedPort });
             console.log("Disconnected from", selectedPort);
-            isConnected = false;
-
-            // 2. ターミナルリソースのクリーンアップ
-            cleanupTerminal();
         } catch (e) {
             console.error("Failed to disconnect:", e);
         }
@@ -105,6 +113,20 @@
             }
         }).then((fn) => {
             unlisten = fn;
+        });
+
+        // 接続ステータス変更のリスナーの登録
+        listen("connection-status-changed", (event) => {
+            const payload = event.payload as {
+                port_name: string;
+                status: ConnectionState;
+            };
+            if (payload.port_name === selectedPort && terminal) {
+                connectionState = payload.status;
+                console.log("Connection status changed:", payload.status);
+            }
+        }).then((fn) => {
+            unlistenStatus = fn;
         });
     }
 
@@ -152,7 +174,6 @@
                 id="port-select"
                 bind:value={selectedPort}
                 onmousedown={refreshPorts}
-                disabled={isConnected}
             >
                 {#if ports.length === 0}
                     <option value="">(No ports detected)</option>
@@ -169,11 +190,7 @@
 
         <div class="menu-item">
             <label for="baud-select">Baud Rate:</label>
-            <select
-                id="baud-select"
-                bind:value={selectedBaudRate}
-                disabled={isConnected}
-            >
+            <select id="baud-select" bind:value={selectedBaudRate}>
                 <option value={9600}>9600</option>
                 <option value={19200}>19200</option>
                 <option value={38400}>38400</option>
@@ -182,18 +199,14 @@
             </select>
         </div>
 
-        <button
-            onclick={handleConnectToggle}
-            class:connected={isConnected}
-            disabled={!selectedPort}
-        >
-            {isConnected ? "Disconnect" : "Connect"}
-        </button>
+        <div onclick={handleConnectToggle}>
+            <ConnectionButton state={connectionState} />
+        </div>
     </div>
 
-    <!-- 下部ターミナル領域 -->
+    <!-- 受信データの描画領域 -->
     <div class="terminal-area">
-        {#if !isConnected}
+        {#if !(connectionState === "invalid")}
             <div class="placeholder-message">
                 <p>
                     Not Connected. Select a port and click "Connect" to start
@@ -201,10 +214,10 @@
                 </p>
             </div>
         {/if}
-        <!-- ターミナル描画領域 (接続後のみ表示) -->
+        <!-- 受信データの描画領域 (接続後のみ表示) -->
         <div
             class="serialport-tab-container"
-            class:hidden={!isConnected}
+            class:hidden={connectionState === "invalid"}
             bind:this={termiailElement}
         ></div>
     </div>
