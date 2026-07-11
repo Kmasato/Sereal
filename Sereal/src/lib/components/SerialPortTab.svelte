@@ -130,7 +130,9 @@
         });
     }
 
-    function cleanupTerminal() {
+    async function cleanupTerminal() {
+        await invoke("unregister_handler", { portName: selectedPort });
+
         if (unlisten) {
             unlisten();
             unlisten = null;
