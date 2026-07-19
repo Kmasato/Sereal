@@ -205,6 +205,12 @@
 </main>
 
 <style>
+    :global(body) {
+        margin: 0;
+        pad: 0;
+        overflow: hidden;
+    }
+
     main {
         width: 100vw;
         height: 100vh;
