@@ -15,7 +15,7 @@
             color: ColorPallet.uiGreen,
         },
         disconnected: {
-            icon: disconnectedIcon,
+            icon: connectedIcon,
             color: ColorPallet.uiWhite,
         },
         physicalDisconnected: {
