@@ -208,15 +208,6 @@
 
     <!-- 受信データの描画領域 -->
     <div class="terminal-area">
-        {#if !(connectionState === "invalid")}
-            <div class="placeholder-message">
-                <p>
-                    Not Connected. Select a port and click "Connect" to start
-                    monitoring.
-                </p>
-            </div>
-        {/if}
-        <!-- 受信データの描画領域 (接続後のみ表示) -->
         <div
             class="serialport-tab-container"
             class:hidden={connectionState === "invalid"}
