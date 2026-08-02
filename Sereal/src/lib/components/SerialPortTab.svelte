@@ -17,6 +17,7 @@
 
     let ports: string[] = $state([]);
     let selectedPort: string = $state(initialPortName);
+    let connectedPort: string = $state("");
     let selectedBaudRate: number = $state(115200);
     let connectionState: ConnectionState = $state("invalid");
 
@@ -60,6 +61,7 @@
 
             // 接続直後は Terminal 内で状態の変化を検知できないため、明示的に指定
             connectionState = "connected";
+            connectedPort = selectedPort;
 
             if (terminal !== null) {
                 return;
@@ -75,10 +77,14 @@
     }
 
     async function disconnect() {
-        if (!selectedPort) return;
+        if (!connectedPort) {
+            console.warn("Not opened port");
+            return;
+        }
         try {
-            await invoke("disconnect", { portName: selectedPort });
-            console.log("Disconnected from", selectedPort);
+            await invoke("disconnect", { portName: connectedPort });
+            console.log("Disconnected from", connectedPort);
+            connectedPort = "";
         } catch (e) {
             console.error("Failed to disconnect:", e);
         }
@@ -105,7 +111,7 @@
                 port_name: string;
                 text: string;
             };
-            if (payload.port_name === selectedPort && terminal) {
+            if (payload.port_name === connectedPort && terminal) {
                 terminal.write(payload.text);
             }
         }).then((fn) => {
@@ -173,6 +179,12 @@
                 id="port-select"
                 bind:value={selectedPort}
                 onmousedown={refreshPorts}
+                onchange={async () => {
+                    if (connectedPort) {
+                        await disconnect();
+                    }
+                    await connect();
+                }}
             >
                 {#if ports.length === 0}
                     <option value="">(No ports detected)</option>
