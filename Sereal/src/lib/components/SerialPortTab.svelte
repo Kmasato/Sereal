@@ -29,9 +29,6 @@
     async function refreshPorts() {
         if (connectionState == "connected") return;
         ports = await invoke("get_ports");
-        if (!ports.includes(selectedPort)) {
-            selectedPort = ports.length > 0 ? ports[0] : "";
-        }
     }
 
     async function handleConnectToggle() {
@@ -180,8 +177,8 @@
                 {#if ports.length === 0}
                     <option value="">(No ports detected)</option>
                 {:else}
-                    {#if !selectedPort}<option value=""
-                            >-- Select Port --</option
+                    {#if !selectedPort}<option value="" disabled hidden
+                            >Select Port</option
                         >{/if}
                     {#each ports as port}
                         <option value={port}>{port}</option>
