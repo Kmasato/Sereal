@@ -56,6 +56,17 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(serial_service)
         .manage(server)
+        .setup(|app| {
+            #[cfg(debug_assertions)]
+            {
+                use tauri::Manager;
+
+                if let Some(window) = app.get_webview_window("main") {
+                    window.open_devtools();
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             register_handler,
             unregister_handler,
