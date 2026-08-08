@@ -24,12 +24,12 @@
     // 新規の接続用空タブを追加する関数
     function addConnectionTab(targetStack?: any) {
         tabCounter++;
-        const tabId = `new-connection-${tabCounter}`;
+        const clientId = crypto.randomUUID();
 
         const itemConfig: ComponentItemConfig = {
             type: "component",
             componentType: "serial-port-tab",
-            componentState: { tabId, portName: "" },
+            componentState: { clientId, portName: "" },
             title: "New Connection",
         };
 
@@ -53,12 +53,13 @@
 
         // コンポーネントファクトリを登録
         layout.registerComponent("serial-port-tab", (container, state) => {
-            const configState = state as { tabId: string; portName: string };
+            const configState = state as { clientId: string; portName: string };
             let currentPortName = configState.portName;
 
             const instance = mount(SerialPortTab, {
                 target: container.element,
                 props: {
+                    clientId: configState.clientId,
                     initialPortName: currentPortName,
                     onConnected: (connectedPortName: string) => {
                         // 接続に成功した時の処理
@@ -71,7 +72,7 @@
             });
 
             // インスタンスの参照を保持
-            mountedComponents.set(configState.tabId, {
+            mountedComponents.set(configState.clientId, {
                 instance: instance as any,
                 fit: () => {
                     if (
@@ -85,7 +86,7 @@
 
             // タブがリサイズされた時
             container.on("resize", () => {
-                const comp = mountedComponents.get(configState.tabId);
+                const comp = mountedComponents.get(configState.clientId);
                 if (comp) {
                     comp.fit();
                 }
@@ -107,7 +108,7 @@
 
                 // Svelteコンポーネントをアンマウント
                 unmount(instance);
-                mountedComponents.delete(configState.tabId);
+                mountedComponents.delete(configState.clientId);
 
                 // 全てのタブが閉じられた場合、自動的に1つ「New Connection」タブを新規追加する
                 setTimeout(() => {
@@ -165,7 +166,7 @@
 
         // 初期起動時に最初の空タブを1つ表示するレイアウトをロード
         tabCounter++;
-        const tabId = `new-connection-${tabCounter}`;
+        const initialClientId = crypto.randomUUID();
         layout.loadLayout({
             root: {
                 type: "row",
@@ -173,7 +174,10 @@
                     {
                         type: "component",
                         componentType: "serial-port-tab",
-                        componentState: { tabId: tabId, portName: "" },
+                        componentState: {
+                            clientId: initialClientId,
+                            portName: "",
+                        },
                         title: "New Connection",
                     },
                 ],
