@@ -10,7 +10,12 @@
 
     import "@xterm/xterm/css/xterm.css";
 
-    let { initialPortName = "", onConnected = null } = $props<{
+    let {
+        clientId,
+        initialPortName = "",
+        onConnected = null,
+    } = $props<{
+        clientId: string;
         initialPortName?: string;
         onConnected?: (portName: string) => void;
     }>();
@@ -24,6 +29,7 @@
     let termiailElement: HTMLDivElement;
     let terminal: Terminal | null = null;
     let fitAddon: FitAddon | null = null;
+    let resizeObserver: ResizeObserver | null = null;
     let unlisten: (() => void) | null = null;
     let unlistenStatus: (() => void) | null = null;
 
@@ -43,37 +49,23 @@
     async function connect() {
         if (!selectedPort) return;
         if (connectionState == "connected") return;
-        if (connectionState == "invalid") {
-            await invoke("register_handler", { portName: selectedPort });
+
+        // 接続処理
+        await invoke("connect", {
+            clientId: clientId,
+            portName: selectedPort,
+            baudRate: selectedBaudRate,
+        });
+        console.log("Connected to", selectedPort);
+
+        // 接続成功を親に通知
+        if (onConnected) {
+            onConnected(selectedPort);
         }
-        try {
-            // 接続処理
-            await invoke("connect", {
-                portName: selectedPort,
-                baudRate: selectedBaudRate,
-            });
-            console.log("Connected to", selectedPort);
 
-            // 接続成功を親に通知
-            if (onConnected) {
-                onConnected(selectedPort);
-            }
-
-            // 接続直後は Terminal 内で状態の変化を検知できないため、明示的に指定
-            connectionState = "connected";
-            connectedPort = selectedPort;
-
-            if (terminal !== null) {
-                return;
-            }
-
-            // 初回接続時のみ、DOM の hidden 解除をまってターミナルを初期化
-            setTimeout(() => {
-                initTerminal();
-            }, 50);
-        } catch (e) {
-            console.error("Failed to connect:", e);
-        }
+        // 接続直後は Terminal 内で状態の変化を検知できないため、明示的に指定
+        connectionState = "connected";
+        connectedPort = selectedPort;
     }
 
     async function disconnect() {
@@ -82,7 +74,7 @@
             return;
         }
         try {
-            await invoke("disconnect", { portName: connectedPort });
+            await invoke("disconnect", { clientId: clientId });
             console.log("Disconnected from", connectedPort);
             connectedPort = "";
         } catch (e) {
@@ -91,7 +83,7 @@
     }
 
     function initTerminal() {
-        // ターミナルのインスタンス化 (C++ における new に相当)
+        // ターミナルのインスタンス化
         terminal = new Terminal({
             convertEol: true,
             disableStdin: true,
@@ -103,15 +95,21 @@
         fitAddon = new FitAddon();
         terminal.loadAddon(fitAddon);
         terminal.open(termiailElement);
-        fitAddon.fit();
+
+        resizeObserver = new ResizeObserver(() => {
+            if (fitAddon) {
+                fitAddon.fit();
+            }
+        });
+        resizeObserver.observe(termiailElement);
 
         // データ受信リスナーの登録
         listen("serial-data", (event) => {
             const payload = event.payload as {
-                port_name: string;
+                clientId: string;
                 text: string;
             };
-            if (payload.port_name === connectedPort && terminal) {
+            if (payload.clientId === clientId && terminal) {
                 terminal.write(payload.text);
             }
         }).then((fn) => {
@@ -121,10 +119,10 @@
         // 接続ステータス変更のリスナーの登録
         listen("connection-status-changed", (event) => {
             const payload = event.payload as {
-                port_name: string;
+                clientId: string;
                 status: ConnectionState;
             };
-            if (payload.port_name === selectedPort && terminal) {
+            if (payload.clientId === clientId && terminal) {
                 connectionState = payload.status;
                 console.log("Connection status changed:", payload.status);
             }
@@ -134,7 +132,8 @@
     }
 
     async function cleanupTerminal() {
-        await invoke("unregister_handler", { portName: selectedPort });
+        console.log("cleanupTerminal");
+        await invoke("unregister_handler", { clientId: clientId });
 
         if (unlisten) {
             unlisten();
@@ -157,11 +156,9 @@
     }
 
     onMount(() => {
-        if (initialPortName) {
-            connect();
-        } else {
-            refreshPorts();
-        }
+        invoke("register_handler", { clientId: clientId });
+        refreshPorts();
+        initTerminal();
     });
 
     onDestroy(() => {

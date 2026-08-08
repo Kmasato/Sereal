@@ -3,26 +3,28 @@ use tauri::Emitter;
 
 pub struct TauriDataHandler {
     app_handle: tauri::AppHandle,
-    port_name: String,
+    client_id: String,
 }
 
 #[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct SerialEventPayload {
-    port_name: String,
+    client_id: String,
     text: String,
 }
 
 #[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ConnectionStatusPayload {
-    port_name: String,
+    client_id: String,
     status: crate::serial::types::ConnectionStatus,
 }
 
 impl TauriDataHandler {
-    pub fn new(app_handle: tauri::AppHandle, port_name: String) -> Self {
+    pub fn new(app_handle: tauri::AppHandle, client_id: String) -> Self {
         Self {
             app_handle,
-            port_name,
+            client_id,
         }
     }
 }
@@ -31,7 +33,7 @@ impl DataUpdateHandler for TauriDataHandler {
     fn on_received(&self, data: Vec<u8>) {
         let text = String::from_utf8_lossy(&data).to_string();
         let payload = SerialEventPayload {
-            port_name: self.port_name.clone(),
+            client_id: self.client_id.clone(),
             text,
         };
         let _ = self.app_handle.emit("serial-data", payload);
@@ -43,7 +45,7 @@ impl DataUpdateHandler for TauriDataHandler {
 
     fn on_status_changed(&self, status: crate::serial::types::ConnectionStatus) {
         let payload = ConnectionStatusPayload {
-            port_name: self.port_name.clone(),
+            client_id: self.client_id.clone(),
             status: status,
         };
         let _ = self.app_handle.emit("connection-status-changed", payload);

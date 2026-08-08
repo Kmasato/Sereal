@@ -11,32 +11,36 @@ use std::sync::{Arc, Mutex};
 fn register_handler(
     app_handle: tauri::AppHandle,
     server: tauri::State<'_, Arc<Mutex<TransportServer>>>,
-    port_name: String,
+    client_id: String,
 ) {
     let handler = Arc::new(adapter::TauriDataHandler::new(
         app_handle,
-        port_name.clone(),
+        client_id.clone(),
     ));
-    server.lock().unwrap().register_handler(&port_name, handler);
+    server.lock().unwrap().register_handler(client_id, handler);
 }
 
 #[tauri::command]
-fn unregister_handler(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, port_name: String) {
-    server.lock().unwrap().unregister_handler(&port_name);
+fn unregister_handler(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, client_id: String) {
+    server.lock().unwrap().unregister_handler(client_id);
 }
 
 #[tauri::command]
 fn connect(
     server: tauri::State<'_, Arc<Mutex<TransportServer>>>,
+    client_id: String,
     port_name: String,
     baud_rate: u32,
 ) {
-    server.lock().unwrap().connect(&port_name, baud_rate);
+    server
+        .lock()
+        .unwrap()
+        .connect(client_id, port_name, baud_rate);
 }
 
 #[tauri::command]
-fn disconnect(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, port_name: String) {
-    server.lock().unwrap().disconnect(&port_name);
+fn disconnect(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, client_id: String) {
+    server.lock().unwrap().disconnect(client_id);
 }
 
 #[tauri::command]
