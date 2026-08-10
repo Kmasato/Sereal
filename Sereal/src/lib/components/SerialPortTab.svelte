@@ -146,7 +146,7 @@
     }
 
     async function cleanupTerminal() {
-        console.log("cleanupTerminal");
+        await disconnect();
         await invoke("unregister_handler", { clientId: clientId });
 
         if (unlisten) {
