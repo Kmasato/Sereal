@@ -31,16 +31,16 @@ fn connect(
     client_id: String,
     port_name: String,
     baud_rate: u32,
-) {
+) -> bool {
     server
         .lock()
         .unwrap()
-        .connect(client_id, port_name, baud_rate);
+        .connect(client_id, port_name, baud_rate)
 }
 
 #[tauri::command]
-fn disconnect(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, client_id: String) {
-    server.lock().unwrap().disconnect(client_id);
+fn disconnect(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, client_id: String) -> bool {
+    server.lock().unwrap().disconnect(client_id)
 }
 
 #[tauri::command]

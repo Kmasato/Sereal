@@ -48,24 +48,33 @@
 
     async function connect() {
         if (!selectedPort) return;
-        if (connectionState == "connected") return;
+        if (connectionState == "connected") {
+            console.log(
+                "Call connect but connection station is already opend.",
+            );
+            return;
+        }
 
         // 接続処理
-        await invoke("connect", {
+        let connectionSuccess = await invoke("connect", {
             clientId: clientId,
             portName: selectedPort,
             baudRate: selectedBaudRate,
         });
-        console.log("Connected to", selectedPort);
 
-        // 接続成功を親に通知
-        if (onConnected) {
-            onConnected(selectedPort);
+        if (connectionSuccess) {
+            console.log("Connected to", selectedPort);
+
+            // 接続成功を親に通知
+            if (onConnected) {
+                onConnected(selectedPort);
+            }
+
+            connectionState = "connected";
+            connectedPort = selectedPort;
+        } else {
+            console.error("Failed to connect to", selectedPort);
         }
-
-        // 接続直後は Terminal 内で状態の変化を検知できないため、明示的に指定
-        connectionState = "connected";
-        connectedPort = selectedPort;
     }
 
     async function disconnect() {
@@ -73,12 +82,16 @@
             console.warn("Not opened port");
             return;
         }
-        try {
-            await invoke("disconnect", { clientId: clientId });
+        let disconnectionSuccess = await invoke("disconnect", {
+            clientId: clientId,
+        });
+
+        if (disconnectionSuccess) {
             console.log("Disconnected from", connectedPort);
             connectedPort = "";
-        } catch (e) {
-            console.error("Failed to disconnect:", e);
+            connectionState = "disconnected";
+        } else {
+            console.error("Failed to disconnect from", connectedPort);
         }
     }
 
@@ -117,6 +130,7 @@
         });
 
         // 接続ステータス変更のリスナーの登録
+        // ユーザーの操作以外で内部状態が変わった場合にバックグラウンドと同期するための処理
         listen("connection-status-changed", (event) => {
             const payload = event.payload as {
                 clientId: string;

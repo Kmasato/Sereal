@@ -85,7 +85,7 @@ impl TransportServer {
         self.remove_client(client_id);
     }
 
-    pub fn connect(&self, client_id: String, port_name: String, baud_rate: u32) {
+    pub fn connect(&self, client_id: String, port_name: String, baud_rate: u32) -> bool {
         if let Some(client) = self.clients.lock().unwrap().get_mut(&client_id) {
             let mut service = self.serial_service.lock().unwrap();
             if !service.is_connected(&port_name) {
@@ -93,6 +93,7 @@ impl TransportServer {
                     Ok(_) => {
                         client.port_name = Some(port_name.clone());
                         println!("Connect {port_name}");
+                        return true;
                     }
                     Err(e) => {
                         eprintln!("Connection Failed:{e}");
@@ -102,9 +103,10 @@ impl TransportServer {
                 println!("Physical port is already connected\n");
             }
         }
+        return false;
     }
 
-    pub fn disconnect(&self, client_id: String) {
+    pub fn disconnect(&self, client_id: String) -> bool {
         if let Some(client) = self.clients.lock().unwrap().get_mut(&client_id) {
             if let Some(port_name) = &client.port_name {
                 let mut service = self.serial_service.lock().unwrap();
@@ -113,11 +115,13 @@ impl TransportServer {
                     service.disconnect(&port_name);
                     // 受信したレポートIDをリセット
                     client.last_received_id = 0;
+                    return true;
                 } else {
                     eprintln!("Failed to disconnect, {port_name} is not opened.")
                 }
             }
         }
+        return false;
     }
 
     fn add_client(&self, client_id: String, handler: Arc<dyn DataUpdateHandler>) {
