@@ -2,7 +2,6 @@
     import { onMount, mount, unmount } from "svelte";
     import { GoldenLayout, type ComponentItemConfig } from "golden-layout";
     import SerialPortTab from "$lib/components/SerialPortTab.svelte";
-    import { invoke } from "@tauri-apps/api/core";
 
     import "golden-layout/dist/css/goldenlayout-base.css";
     import "golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
@@ -19,11 +18,8 @@
         }
     >();
 
-    let tabCounter = 0;
-
     // 新規の接続用空タブを追加する関数
     function addConnectionTab(targetStack?: any) {
-        tabCounter++;
         const clientId = crypto.randomUUID();
 
         const itemConfig: ComponentItemConfig = {
@@ -54,17 +50,13 @@
         // コンポーネントファクトリを登録
         layout.registerComponent("serial-port-tab", (container, state) => {
             const configState = state as { clientId: string; portName: string };
-            let currentPortName = configState.portName;
 
             const instance = mount(SerialPortTab, {
                 target: container.element,
                 props: {
                     clientId: configState.clientId,
-                    initialPortName: currentPortName,
+                    initialPortName: configState.portName,
                     onConnected: (connectedPortName: string) => {
-                        // 接続に成功した時の処理
-                        currentPortName = connectedPortName;
-
                         // タブのタイトルを接続先のポート名に変更
                         container.setTitle(connectedPortName);
                     },
@@ -94,18 +86,6 @@
 
             // タブが閉じられた(デストラクタ呼び出し)時のクリーンアップ処理
             container.on("destroy", () => {
-                // 接続済みだった場合のみバックエンド側を切断
-                if (currentPortName) {
-                    invoke("disconnect", { portName: currentPortName }).catch(
-                        (e) => {
-                            console.error(
-                                "Failed to disconnect during destroy:",
-                                e,
-                            );
-                        },
-                    );
-                }
-
                 // Svelteコンポーネントをアンマウント
                 unmount(instance);
                 mountedComponents.delete(configState.clientId);
@@ -165,7 +145,6 @@
         });
 
         // 初期起動時に最初の空タブを1つ表示するレイアウトをロード
-        tabCounter++;
         const initialClientId = crypto.randomUUID();
         layout.loadLayout({
             root: {

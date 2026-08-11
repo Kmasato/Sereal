@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { portStore } from "$lib/stores/portStore.svelte";
     import { Terminal } from "@xterm/xterm";
     import { FitAddon } from "@xterm/addon-fit";
     import { listen } from "@tauri-apps/api/event";
@@ -20,7 +21,7 @@
         onConnected?: (portName: string) => void;
     }>();
 
-    let ports: string[] = $state([]);
+    let availablePorts: string[] = $state([]);
     let selectedPort: string = $state(initialPortName);
     let connectedPort: string = $state("");
     let selectedBaudRate: number = $state(115200);
@@ -33,9 +34,15 @@
     let unlisten: (() => void) | null = null;
     let unlistenStatus: (() => void) | null = null;
 
+    $effect(() => {
+        portStore.setPort(clientId, selectedPort);
+    });
+
     async function refreshPorts() {
         if (connectionState == "connected") return;
-        ports = await invoke("get_ports");
+        const allPorts: string[] = await invoke("get_ports");
+        const usedPorts = portStore.getUserPortsExcept(clientId);
+        availablePorts = allPorts.filter((port) => !usedPorts.has(port));
     }
 
     async function handleConnectToggle() {
@@ -146,7 +153,7 @@
     }
 
     async function cleanupTerminal() {
-        console.log("cleanupTerminal");
+        await disconnect();
         await invoke("unregister_handler", { clientId: clientId });
 
         if (unlisten) {
@@ -176,7 +183,7 @@
     });
 
     onDestroy(() => {
-        // リソースの明示的な解放 (C++ における delete / デストラクタに相当)
+        portStore.removePort(clientId);
         cleanupTerminal();
     });
 </script>
@@ -186,10 +193,15 @@
     <div class="menu-bar">
         <div class="menu-item">
             <label for="port-select">Port:</label>
+            <!--
+            refreshPorts() が非同期処理であり、
+            表示処理が先行した場合に古い状態が表示される場合があるため、
+            mousedownではなく、mouseenterで更新する
+            -->
             <select
                 id="port-select"
                 bind:value={selectedPort}
-                onmousedown={refreshPorts}
+                onmouseenter={refreshPorts}
                 onchange={async () => {
                     if (connectedPort) {
                         await disconnect();
@@ -197,13 +209,13 @@
                     await connect();
                 }}
             >
-                {#if ports.length === 0}
+                {#if availablePorts.length === 0}
                     <option value="">(No ports detected)</option>
                 {:else}
                     {#if !selectedPort}<option value="" disabled hidden
                             >Select Port</option
                         >{/if}
-                    {#each ports as port}
+                    {#each availablePorts as port}
                         <option value={port}>{port}</option>
                     {/each}
                 {/if}
