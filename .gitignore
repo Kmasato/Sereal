@@ -28,3 +28,14 @@ build/
 # Added by cargo
 
 /target
+
+# Python Cache Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python Environments
+venv/
+env/
+.venv/
