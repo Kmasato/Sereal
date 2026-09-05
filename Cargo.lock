@@ -3237,7 +3237,7 @@ dependencies = [
 
 [[package]]
 name = "sereal"
-version = "0.1.0"
+version = "0.2.0-alpha1"
 dependencies = [
  "getset",
  "serde",
