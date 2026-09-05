@@ -2,12 +2,14 @@
     import { onMount, mount, unmount } from "svelte";
     import { GoldenLayout, type ComponentItemConfig } from "golden-layout";
     import SerialPortTab from "$lib/components/SerialPortTab.svelte";
+    import { getVersion } from "@tauri-apps/api/app";
 
     import "golden-layout/dist/css/goldenlayout-base.css";
     import "golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
 
     let layoutContainer: HTMLDivElement;
     let layout: GoldenLayout;
+    let appVersion = $state("");
 
     // 動的マウントしたコンポーネントの参照を管理する Map
     const mountedComponents = new Map<
@@ -44,6 +46,10 @@
     }
 
     onMount(() => {
+        getVersion().then((ver) => {
+            appVersion = ver;
+        });
+
         // Golden Layout の初期化
         layout = new GoldenLayout(layoutContainer);
 
@@ -185,6 +191,12 @@
 
 <main>
     <div class="layout-container" bind:this={layoutContainer}></div>
+    <footer class="status-bar">
+        <div class="status-left"></div>
+        <div class="status-right">
+            <span class="version-label">v{appVersion}</span>
+        </div>
+    </footer>
 </main>
 
 <style>
@@ -200,11 +212,43 @@
         background-color: #1e1e1e;
         margin: 0;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 
     .layout-container {
         width: 100%;
-        height: 100%;
+        height: calc(100vh - 24px);
+        flex-grow: 1;
+    }
+
+    .status-bar {
+        height: 24px;
+        background-color: #3b3b3b;
+        color: #909090;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        font-size: 11px;
+        font-family:
+            system-ui,
+            -apple-system,
+            sans-serif;
+        user-select: none;
+        box-sizing: border-box;
+        z-index: 100;
+    }
+
+    .status-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .version-label {
+        font-weight: 500;
+        opacity: 0.9;
     }
 
     /* Golden Layout の各ペインのスクロール等を抑制するためのスタイル */
