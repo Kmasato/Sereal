@@ -38,3 +38,14 @@ Sereal/package/
 .env*
 !*.env.example
 vite.config.*.timestamp-*
+
+# Python Cache Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python Environments
+venv/
+env/
+.venv/
