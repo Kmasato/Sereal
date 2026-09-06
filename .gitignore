@@ -29,6 +29,16 @@ build/
 
 /target
 
+# Sereal (Tauri/Svelte)
+**/node_modules/
+Sereal/src-tauri/gen/
+Sereal/.svelte-kit/
+Sereal/build/
+Sereal/package/
+.env*
+!*.env.example
+vite.config.*.timestamp-*
+
 # Python Cache Files
 __pycache__/
 *.pyc
