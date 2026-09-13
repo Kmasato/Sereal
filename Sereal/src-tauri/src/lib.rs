@@ -60,12 +60,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(serial_service)
         .manage(server)
-        .setup(|app| {
+        .setup(|_app| {
             #[cfg(debug_assertions)]
             {
                 use tauri::Manager;
 
-                if let Some(window) = app.get_webview_window("main") {
+                if let Some(window) = _app.get_webview_window("main") {
                     window.open_devtools();
                 }
             }
