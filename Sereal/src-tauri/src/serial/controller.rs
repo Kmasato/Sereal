@@ -5,9 +5,9 @@ use super::types::BaudRate;
 use getset::{Getters, MutGetters};
 use serialport;
 use std::collections::VecDeque;
-use std::sync::atomic::Ordering;
 use std::sync::Mutex;
-use std::sync::{atomic::AtomicBool, mpsc, Arc};
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, atomic::AtomicBool, mpsc};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use std::u32;
@@ -111,6 +111,7 @@ impl Controller {
         self.port_name.clone()
     }
 
+    #[allow(dead_code)]
     pub fn send(&self, data: String) {
         if let Some(sender) = &self.send_data_sender {
             match sender.send(data.as_bytes().to_vec()) {

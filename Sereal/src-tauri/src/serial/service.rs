@@ -51,6 +51,7 @@ impl SerialService {
                 .map_or(false, |controller| controller.is_physical_connected())
     }
 
+    #[allow(dead_code)]
     pub fn send(&self, port_name: &str, data: String) {
         if let Some(controller) = self.get_controller(port_name) {
             controller.send(data);

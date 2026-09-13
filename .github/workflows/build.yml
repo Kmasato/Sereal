@@ -1,0 +1,88 @@
+name: Sereal Cross Platform Build
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: Sereal/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: true
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./Sereal
+
+      - name: Build Tauri App (macOS)
+        if: runner.os == 'macOS'
+        run: npm run tauri build -- --bundles app
+        working-directory: ./Sereal
+
+      - name: Build Tauri App (Windows)
+        if: runner.os == 'Windows'
+        run: npm run tauri build -- --no-bundle
+        working-directory: ./Sereal
+
+      - name: Get version (macOS)
+        if: runner.os == 'macOS'
+        run: echo "APP_VERSION=$(grep '^version = ' Sereal/src-tauri/Cargo.toml | head -n 1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_ENV
+
+      - name: Get version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = (Get-Content -Path Sereal/src-tauri/Cargo.toml | Select-String -Pattern 'version = "(.+)"')[0].Matches[0].Groups[1].Value
+          echo "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Package Windows Artifact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $appName = "sereal-windows-${{ env.APP_VERSION }}"
+          mkdir $appName
+          Copy-Item -Path "target/release/sereal.exe" -Destination "$appName/"
+
+      - name: Package macOS Artifact
+        if: runner.os == 'macOS'
+        run: |
+          APP_PATH=$(find target/release/bundle/macos -maxdepth 1 -name "*.app" | head -n 1)
+          echo "Found app bundle at $APP_PATH"
+          chmod +x "$APP_PATH/Contents/MacOS/"*
+          codesign --force --deep --sign - "$APP_PATH"
+          mkdir "sereal-macos-${{ env.APP_VERSION }}"
+          cp -R "$APP_PATH" "sereal-macos-${{ env.APP_VERSION }}/"
+          xattr -cr "sereal-macos-${{ env.APP_VERSION }}/$(basename "$APP_PATH")"
+
+      - name: Upload Windows Artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sereal-windows-${{ env.APP_VERSION }}
+          path: sereal-windows-${{ env.APP_VERSION }}/
+
+      - name: Upload macOS Artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sereal-macos-${{ env.APP_VERSION }}
+          path: sereal-macos-${{ env.APP_VERSION }}/
