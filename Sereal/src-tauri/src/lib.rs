@@ -49,6 +49,15 @@ fn get_ports(service: tauri::State<'_, Arc<Mutex<SerialService>>>) -> Vec<String
     service.get_connectable_ports(None)
 }
 
+#[tauri::command]
+fn send(
+    server: tauri::State<'_, Arc<Mutex<TransportServer>>>,
+    client_id: String,
+    data: String,
+) -> bool {
+    server.lock().unwrap().send(client_id, data)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let serial_service = Arc::new(Mutex::new(SerialService::default()));
@@ -77,6 +86,7 @@ pub fn run() {
             connect,
             disconnect,
             get_ports,
+            send,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -111,7 +111,6 @@ impl Controller {
         self.port_name.clone()
     }
 
-    #[allow(dead_code)]
     pub fn send(&self, data: String) {
         if let Some(sender) = &self.send_data_sender {
             match sender.send(data.as_bytes().to_vec()) {
