@@ -212,7 +212,7 @@
 <div class="tab-content">
     <!-- 上部メニューバー (ツールバー) -->
     <div class="menu-bar">
-        <div class="menu-item">
+        <div class="menu-item port-item">
             <label for="port-select">Port:</label>
             <!--
             refreshPorts() が非同期処理であり、
@@ -243,7 +243,7 @@
             </select>
         </div>
 
-        <div class="menu-item">
+        <div class="menu-item baud-item">
             <label for="baud-select">Baud Rate:</label>
             <select id="baud-select" bind:value={selectedBaudRate}>
                 <option value={9600}>9600</option>
@@ -254,7 +254,7 @@
             </select>
         </div>
 
-        <div onclick={handleConnectToggle}>
+        <div class="connect-wrapper" onclick={handleConnectToggle}>
             <ConnectionButton state={connectionState} />
         </div>
     </div>
@@ -354,6 +354,23 @@
         flex-direction: row;
         align-items: center;
         gap: 5px;
+    }
+
+    .menu-item.port-item {
+        flex: 0 1 auto;
+        min-width: 120px;
+        max-width: 280px;
+    }
+
+    #port-select {
+        width: 100%;
+        min-width: 0;
+        text-overflow: ellipsis;
+    }
+
+    .menu-item.baud-item,
+    .connect-wrapper {
+        flex-shrink: 0;
     }
 
     .menu-item label {
