@@ -26,6 +26,7 @@
     let connectedPort: string = $state("");
     let selectedBaudRate: number = $state(115200);
     let connectionState: ConnectionState = $state("invalid");
+    let sendText: string = $state("");
 
     let termiailElement: HTMLDivElement;
     let terminal: Terminal | null = null;
@@ -33,6 +34,26 @@
     let resizeObserver: ResizeObserver | null = null;
     let unlisten: (() => void) | null = null;
     let unlistenStatus: (() => void) | null = null;
+
+    async function sendData() {
+        if (!sendText || connectionState !== "connected") return;
+
+        try {
+            await invoke("send", {
+                clientId: clientId,
+                data: sendText,
+            });
+            sendText = "";
+        } catch (e) {
+            console.error("Failed to send data:", e);
+        }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === "Enter" && !event.isComposing) {
+            sendData();
+        }
+    }
 
     $effect(() => {
         portStore.setPort(clientId, selectedPort);
@@ -238,6 +259,18 @@
         </div>
     </div>
 
+    <!-- シリアル送信 -->
+    <div class="send-bar">
+        <input
+            type="text"
+            class="send-input"
+            placeholder="Type in message to send to the serial port."
+            bind:value={sendText}
+            onkeydown={handleKeyDown}
+        />
+        <button class="send-button" onclick={sendData}>Send</button>
+    </div>
+
     <!-- 受信データの描画領域 -->
     <div class="terminal-area">
         <div
@@ -271,6 +304,51 @@
         box-sizing: border-box;
     }
 
+    .send-bar {
+        display: flex;
+        flex-direction: row;
+        gap: 15px;
+        align-items: center;
+        padding: 0px 15px 5px 10px;
+        background-color: #3b3b3b;
+        border-bottom: 1px solid #3c3c3c;
+        box-sizing: border-box;
+    }
+
+    .send-input {
+        flex: 1;
+        max-width: 500px;
+        background-color: #1e1e1e;
+        color: #cccccc;
+        border: 1px solid #3c3c3c;
+        border-radius: 4px;
+        padding: 4px 5px;
+        font-size: 13px;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .send-input:focus {
+        border-color: #cccccc;
+    }
+
+    .send-input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .send-button {
+        background-color: #6c6c6c;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 8px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        box-sizing: border-box;
+    }
+
     .menu-item {
         display: flex;
         flex-direction: row;
@@ -296,7 +374,7 @@
     }
 
     select:focus {
-        border-color: #007acc;
+        border-color: #cccccc;
     }
 
     select:disabled {
@@ -318,7 +396,7 @@
     }
 
     button:hover:not(:disabled) {
-        background-color: #0062a3;
+        background-color: #cccccc;
     }
 
     button.connected {

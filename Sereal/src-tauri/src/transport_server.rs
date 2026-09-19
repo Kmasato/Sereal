@@ -1,7 +1,7 @@
 use crate::serial;
+use crate::serial::BaudRate;
 use crate::serial::service::SerialService;
 use crate::serial::types::ConnectionStatus;
-use crate::serial::BaudRate;
 use crate::transport::DataUpdateHandler;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -35,44 +35,48 @@ impl TransportServer {
         let serial_service = self.serial_service.clone();
         let clients = self.clients.clone();
 
-        thread::spawn(move || loop {
-            thread::sleep(TransportServer::POLLING_INTERVAL);
+        thread::spawn(move || {
+            loop {
+                thread::sleep(TransportServer::POLLING_INTERVAL);
 
-            let service = serial_service.lock().unwrap();
-            let mut client_list = clients.lock().unwrap();
+                let service = serial_service.lock().unwrap();
+                let mut client_list = clients.lock().unwrap();
 
-            for (_client_id, client) in client_list.iter_mut() {
-                let port_name = match &client.port_name {
-                    Some(name) => name,
-                    None => continue, //
-                };
+                for (_client_id, client) in client_list.iter_mut() {
+                    let port_name = match &client.port_name {
+                        Some(name) => name,
+                        None => continue,
+                    };
 
-                // 接続ステータスの更新
-                let current_status = Self::get_connection_status(&service, &port_name);
-                if current_status != client.last_connection_status {
-                    client.last_connection_status = current_status;
-                    client
-                        .handler
-                        .on_status_changed(client.last_connection_status.clone());
-                    println!("State changed {:?}", client.last_connection_status);
+                    // 接続ステータスの更新
+                    let current_status = Self::get_connection_status(&service, &port_name);
+                    if current_status != client.last_connection_status {
+                        client.last_connection_status = current_status;
+                        client
+                            .handler
+                            .on_status_changed(client.last_connection_status.clone());
+                        println!("State changed {:?}", client.last_connection_status);
+                    }
+
+                    // 受信データの更新
+                    let received_data = service.get_received_data(
+                        &port_name,
+                        serial::types::MAX_RECEIVED_DATA_SIZE as u16,
+                    );
+
+                    let new_data: Vec<_> = received_data
+                        .into_iter()
+                        .filter(|d| d.id > client.last_received_id)
+                        .collect();
+
+                    if let Some(last) = new_data.last() {
+                        let last_id = last.id;
+                        let combined_text: String = new_data.into_iter().map(|d| d.text).collect();
+
+                        client.handler.on_received(combined_text.into_bytes());
+                        client.last_received_id = last_id;
+                    };
                 }
-
-                // 受信データの更新
-                let received_data = service
-                    .get_received_data(&port_name, serial::types::MAX_RECEIVED_DATA_SIZE as u16);
-
-                let new_data: Vec<_> = received_data
-                    .into_iter()
-                    .filter(|d| d.id > client.last_received_id)
-                    .collect();
-
-                if let Some(last) = new_data.last() {
-                    let last_id = last.id;
-                    let combined_text: String = new_data.into_iter().map(|d| d.text).collect();
-
-                    client.handler.on_received(combined_text.into_bytes());
-                    client.last_received_id = last_id;
-                };
             }
         });
     }
@@ -156,5 +160,16 @@ impl TransportServer {
             }
         }
         return ConnectionStatus::Disconnected;
+    }
+
+    pub fn send(&self, client_id: String, data: String) -> bool {
+        if let Some(client) = self.clients.lock().unwrap().get(&client_id) {
+            if let Some(client) = &client.port_name {
+                let service = self.serial_service.lock().unwrap();
+                service.send(client, data);
+                return true;
+            }
+        }
+        false
     }
 }
