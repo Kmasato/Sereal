@@ -8,6 +8,7 @@
 
     import ConnectionButton from "$lib/components/ConnectionButton.svelte";
     import type { ConnectionState } from "./types";
+    import scrollBottomIcon from "$lib/assets/scroll_bottom.svg";
 
     import "@xterm/xterm/css/xterm.css";
 
@@ -52,6 +53,12 @@
     function handleKeyDown(event: KeyboardEvent) {
         if (event.key === "Enter" && !event.isComposing) {
             sendData();
+        }
+    }
+
+    function scrollToBottom() {
+        if (terminal) {
+            terminal.scrollToBottom();
         }
     }
 
@@ -257,6 +264,18 @@
         <div class="connect-wrapper" onclick={handleConnectToggle}>
             <ConnectionButton state={connectionState} />
         </div>
+
+        <button
+            class="scroll-bottom-button"
+            onclick={scrollToBottom}
+            title="Scroll to bottom"
+        >
+            <img
+                src={scrollBottomIcon}
+                alt="Scroll to bottom"
+                class="scroll-bottom-icon"
+            />
+        </button>
     </div>
 
     <!-- シリアル送信 -->
@@ -369,8 +388,41 @@
     }
 
     .menu-item.baud-item,
-    .connect-wrapper {
+    .connect-wrapper,
+    .scroll-bottom-button {
         flex-shrink: 0;
+    }
+
+    .scroll-bottom-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 18px;
+        background-color: #6c6c6c;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10%;
+        cursor: pointer;
+        padding: 0;
+        box-sizing: border-box;
+        transition:
+            filter 0.2s,
+            transform 0.1s;
+        outline: none;
+    }
+
+    .scroll-bottom-button:hover {
+        filter: brightness(1.15);
+    }
+
+    .scroll-bottom-button:active {
+        transform: scale(0.95);
+        filter: brightness(0.9);
+    }
+
+    .scroll-bottom-icon {
+        width: 14px;
+        height: 14px;
     }
 
     .menu-item label {
