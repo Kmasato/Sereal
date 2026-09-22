@@ -9,6 +9,7 @@
     import ConnectionButton from "$lib/components/ConnectionButton.svelte";
     import type { ConnectionState } from "./types";
     import scrollBottomIcon from "$lib/assets/scroll_bottom.svg";
+    import clearIcon from "$lib/assets/eraser.svg";
 
     import "@xterm/xterm/css/xterm.css";
 
@@ -59,6 +60,12 @@
     function scrollToBottom() {
         if (terminal) {
             terminal.scrollToBottom();
+        }
+    }
+
+    function clearTerminal() {
+        if (terminal) {
+            terminal.clear();
         }
     }
 
@@ -266,6 +273,14 @@
         </div>
 
         <button
+            class="clear-button"
+            onclick={clearTerminal}
+            title="Clear terminal"
+        >
+            <img src={clearIcon} alt="Clear terminal" class="clear-icon" />
+        </button>
+
+        <button
             class="scroll-bottom-button"
             onclick={scrollToBottom}
             title="Scroll to bottom"
@@ -315,7 +330,7 @@
     .menu-bar {
         display: flex;
         flex-direction: row;
-        gap: 15px;
+        gap: 10px;
         align-items: center;
         padding: 8px 15px;
         background-color: #3b3b3b;
@@ -326,7 +341,7 @@
     .send-bar {
         display: flex;
         flex-direction: row;
-        gap: 15px;
+        gap: 5px;
         align-items: center;
         padding: 0px 15px 5px 10px;
         background-color: #3b3b3b;
@@ -395,10 +410,12 @@
 
     .menu-item.baud-item,
     .connect-wrapper,
+    .clear-button,
     .scroll-bottom-button {
         flex-shrink: 0;
     }
 
+    .clear-button,
     .scroll-bottom-button {
         display: inline-flex;
         align-items: center;
@@ -417,15 +434,18 @@
         outline: none;
     }
 
+    .clear-button:hover,
     .scroll-bottom-button:hover {
         filter: brightness(1.5);
     }
 
+    .clear-button:active,
     .scroll-bottom-button:active {
         transform: scale(0.95);
         filter: brightness(0.9);
     }
 
+    .clear-icon,
     .scroll-bottom-icon {
         width: 14px;
         height: 14px;
