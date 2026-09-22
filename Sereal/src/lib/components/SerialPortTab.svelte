@@ -364,8 +364,14 @@
         padding: 5px 8px;
         font-size: 11px;
         cursor: pointer;
-        transition: background-color 0.15s;
+        transition:
+            filter 0.2s,
+            transform 0.1s;
         box-sizing: border-box;
+    }
+
+    .send-button:hover {
+        filter: brightness(1.5);
     }
 
     .menu-item {
@@ -412,7 +418,7 @@
     }
 
     .scroll-bottom-button:hover {
-        filter: brightness(1.15);
+        filter: brightness(1.5);
     }
 
     .scroll-bottom-button:active {
@@ -431,8 +437,7 @@
         white-space: nowrap;
     }
 
-    select,
-    button {
+    select {
         background-color: #3c3c3c;
         color: #cccccc;
         border: 1px solid #555555;
@@ -452,36 +457,6 @@
         color: #888888;
         border-color: #444444;
         cursor: not-allowed;
-    }
-
-    button {
-        background-color: #007acc;
-        color: #ffffff;
-        border: none;
-        cursor: pointer;
-        font-weight: bold;
-        padding: 5px 12px;
-        transition: background-color 0.2s;
-    }
-
-    button:hover:not(:disabled) {
-        background-color: #cccccc;
-    }
-
-    button.connected {
-        background-color: #a1260d;
-    }
-
-    button.connected:hover:not(:disabled) {
-        background-color: #801d0a;
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        background-color: #3c3c3c;
-        color: #888888;
-        border: 1px solid #555555;
     }
 
     /* 下部ターミナル領域 */
