@@ -186,7 +186,7 @@ fn connection_thread_main(
 
                             let mut dequeue = received_dequeue.lock().unwrap();
                             if dequeue.len() >= serial::types::MAX_RECEIVED_DATA_SIZE {
-                                dequeue.pop_back();
+                                dequeue.pop_front();
                             }
                             dequeue.push_back(received_data);
                         }
