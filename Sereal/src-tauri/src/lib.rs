@@ -46,7 +46,7 @@ fn disconnect(server: tauri::State<'_, Arc<Mutex<TransportServer>>>, client_id: 
 #[tauri::command]
 fn get_ports(service: tauri::State<'_, Arc<Mutex<SerialService>>>) -> Vec<String> {
     let service = service.lock().unwrap();
-    service.get_connectable_ports(None)
+    service.get_connectable_ports()
 }
 
 #[tauri::command]

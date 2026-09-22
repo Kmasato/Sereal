@@ -74,10 +74,24 @@
     });
 
     async function refreshPorts() {
-        if (connectionState == "connected") return;
         const allPorts: string[] = await invoke("get_ports");
+
+        // 接続済みの Port は get_ports に含まれない
+        // 自身のタブで接続している Port はドロップダウンリストに表示させたいため、allPortsに追加する
+        const currentPort = connectedPort || selectedPort;
+        if (currentPort) {
+            allPorts.unshift(currentPort);
+        }
+
+        // 他のタブで選択済みの Port はドロップダウンリストから除外する
         const usedPorts = portStore.getUserPortsExcept(clientId);
-        availablePorts = allPorts.filter((port) => !usedPorts.has(port));
+
+        availablePorts = allPorts.filter((port) => {
+            if (port === currentPort) {
+                return true; // 自身のタブで選択済みのポートはリストに追加する
+            }
+            return !usedPorts.has(port); // 他のタブで選択済みのポートであれば除外する
+        });
     }
 
     async function handleConnectToggle() {
@@ -245,7 +259,7 @@
                 }}
             >
                 {#if availablePorts.length === 0}
-                    <option value="">(No ports detected)</option>
+                    <option value="">No ports detected</option>
                 {:else}
                     {#if !selectedPort}<option value="" disabled hidden
                             >Select Port</option
