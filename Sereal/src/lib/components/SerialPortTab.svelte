@@ -2,11 +2,13 @@
     import { onMount, onDestroy } from "svelte";
     import { portStore } from "$lib/stores/portStore.svelte";
     import { Terminal } from "@xterm/xterm";
+    import { SearchAddon } from "@xterm/addon-search";
     import { FitAddon } from "@xterm/addon-fit";
     import { listen } from "@tauri-apps/api/event";
     import { invoke } from "@tauri-apps/api/core";
 
     import ConnectionButton from "$lib/components/ConnectionButton.svelte";
+    import SearchBar from "$lib/components/SearchBar.svelte";
     import type { ConnectionState } from "./types";
     import scrollBottomIcon from "$lib/assets/scroll_bottom.svg";
     import clearIcon from "$lib/assets/eraser.svg";
@@ -32,10 +34,12 @@
 
     let termiailElement: HTMLDivElement;
     let terminal: Terminal | null = null;
+    let searchAddon = $state<SearchAddon | null>(null);
     let fitAddon: FitAddon | null = null;
     let resizeObserver: ResizeObserver | null = null;
     let unlisten: (() => void) | null = null;
     let unlistenStatus: (() => void) | null = null;
+    let showSearchBar = $state(false);
 
     async function sendData() {
         if (!sendText || connectionState !== "connected") return;
@@ -156,6 +160,7 @@
         terminal = new Terminal({
             convertEol: true,
             disableStdin: true,
+            allowProposedApi: true,
             theme: {
                 background: "#1e1e1e",
             },
@@ -164,6 +169,18 @@
         fitAddon = new FitAddon();
         terminal.loadAddon(fitAddon);
         terminal.open(termiailElement);
+
+        searchAddon = new SearchAddon();
+        terminal.loadAddon(searchAddon);
+
+        terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+            if (event.type === "keydown" && isSearchShortcut(event)) {
+                portStore.setActiveTab(clientId);
+                event.preventDefault();
+                return false;
+            }
+            return true;
+        });
 
         resizeObserver = new ResizeObserver(() => {
             if (fitAddon) {
@@ -216,6 +233,34 @@
         if (fitAddon) {
             fitAddon = null;
         }
+        if (searchAddon) {
+            searchAddon = null;
+        }
+    }
+
+    function isSearchShortcut(event: KeyboardEvent): boolean {
+        const isFKey =
+            event.code === "KeyF" || event.key === "f" || event.key === "F";
+        const isControlOrCmdKey = event.ctrlKey || event.metaKey;
+        return isFKey && isControlOrCmdKey;
+    }
+
+    function toggleSearchBar() {
+        showSearchBar = !showSearchBar;
+    }
+
+    function handleGlobalKeyDown(event: KeyboardEvent) {
+        if (isSearchShortcut(event)) {
+            if (portStore.isActiveTab(clientId)) {
+                event.preventDefault();
+                toggleSearchBar();
+            }
+        }
+    }
+
+    function closeSearchBar() {
+        showSearchBar = false;
+        terminal?.focus();
     }
 
     // Golden Layout からサイズ変更通知を受けた時に実行する関数
@@ -226,18 +271,27 @@
     }
 
     onMount(() => {
+        portStore.setActiveTab(clientId);
         invoke("register_handler", { clientId: clientId });
         refreshPorts();
         initTerminal();
+        window.addEventListener("keydown", handleGlobalKeyDown);
     });
 
     onDestroy(() => {
         portStore.removePort(clientId);
         cleanupTerminal();
+        window.removeEventListener("keydown", handleGlobalKeyDown);
     });
 </script>
 
-<div class="tab-content">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+    class="tab-content"
+    onclick={() => portStore.setActiveTab(clientId)}
+    onfocusin={() => portStore.setActiveTab(clientId)}
+>
     <!-- 上部メニューバー (ツールバー) -->
     <div class="menu-bar">
         <div class="menu-item port-item">
@@ -321,6 +375,10 @@
 
     <!-- 受信データの描画領域 -->
     <div class="terminal-area">
+        {#if showSearchBar}
+            <SearchBar {searchAddon} onClose={closeSearchBar} />
+        {/if}
+
         <div
             class="serialport-tab-container"
             class:hidden={connectionState === "invalid"}
