@@ -2,6 +2,15 @@
 class PortStore {
   // key: clientId, value: selectedPort
   private tabPorts = $state<Map<string, string>>(new Map());
+  private activeClientId = $state<string>("");
+
+  setActiveTab(clientId: string) {
+    this.activeClientId = clientId;
+  }
+
+  isActiveTab(clientId: string): boolean {
+    return this.activeClientId === clientId;
+  }
 
   // Client ID (タブ)と Port 情報の組みの登録
   // タブ側でポートを選択、変更した時に登録
@@ -15,6 +24,9 @@ class PortStore {
   // タブを閉じた際に呼び出す
   removePort(clientId: string) {
     this.tabPorts.delete(clientId);
+    if (this.activeClientId === clientId) {
+      this.activeClientId = "";
+    }
   }
 
   getUserPortsExcept(currentClientId: string): Set<string> {
