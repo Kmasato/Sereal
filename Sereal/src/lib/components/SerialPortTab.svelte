@@ -406,8 +406,8 @@
         align-items: center;
         padding: 8px 15px;
         background-color: #3b3b3b;
-        border-bottom: 1px solid #3c3c3c;
         box-sizing: border-box;
+        border-top: 1px solid #555555;
     }
 
     .send-bar {
