@@ -6,10 +6,10 @@
 
     import "golden-layout/dist/css/goldenlayout-base.css";
     import "golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
+    import { getCurrentWindow } from "@tauri-apps/api/window";
 
     let layoutContainer: HTMLDivElement;
     let layout: GoldenLayout;
-    let appVersion = $state("");
 
     // 動的マウントしたコンポーネントの参照を管理する Map
     const mountedComponents = new Map<
@@ -47,7 +47,7 @@
 
     onMount(() => {
         getVersion().then((ver) => {
-            appVersion = ver;
+            getCurrentWindow().setTitle(`sereal (v${ver})`);
         });
 
         // Golden Layout の初期化
@@ -191,12 +191,6 @@
 
 <main>
     <div class="layout-container" bind:this={layoutContainer}></div>
-    <footer class="status-bar">
-        <div class="status-left"></div>
-        <div class="status-right">
-            <span class="version-label">v{appVersion}</span>
-        </div>
-    </footer>
 </main>
 
 <style>
@@ -220,35 +214,6 @@
         width: 100%;
         height: calc(100vh - 24px);
         flex-grow: 1;
-    }
-
-    .status-bar {
-        height: 24px;
-        background-color: #3b3b3b;
-        color: #909090;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 12px;
-        font-size: 11px;
-        font-family:
-            system-ui,
-            -apple-system,
-            sans-serif;
-        user-select: none;
-        box-sizing: border-box;
-        z-index: 100;
-    }
-
-    .status-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .version-label {
-        font-weight: 500;
-        opacity: 0.9;
     }
 
     /* Golden Layout の各ペインのスクロール等を抑制するためのスタイル */
@@ -285,12 +250,14 @@
     :global(.lm_tab) {
         height: 32px !important; /* タブの高さを大きく */
         font-size: 0.8rem !important;
-        padding: 0 12px 0 16px !important; /* 右側の余白を調整 */
+        padding: 0 10px 0 16px !important; /* 右側の余白を調整 */
         border-radius: 6px 6px 0 0 !important; /* 上部に丸み */
+        border: 1px solid #555555;
+        box-shadow: none !important; /* 上部の影をなくす */
         background-color: #252526 !important; /* 非アクティブ時は奥に沈む色 */
         color: #969696 !important;
-        border: none !important;
-        margin-right: 3px !important;
+        border-bottom: none !important;
+        margin-right: 2px !important;
         transition:
             background-color 0.15s,
             color 0.15s;
@@ -334,9 +301,13 @@
 
     /* 3. アクティブ（選択中）なタブのデザイン（最前面） */
     :global(.lm_tab.lm_active) {
+        /*position: relative;*/
         background-color: #3b3b3b !important;
         color: #ffffff !important;
         font-weight: bold;
+        /* 選択中はメニューバーのborderを隠すように下方向に描画を伸ばす */
+        margin-bottom: -1px;
+        padding: 0 10px 1px 16px !important;
         z-index: 2; /* 手前に表示 */
     }
 
