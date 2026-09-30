@@ -161,6 +161,7 @@
             convertEol: true,
             disableStdin: true,
             allowProposedApi: true,
+            fontSize: 14,
             theme: {
                 background: "#1e1e1e",
             },
@@ -402,9 +403,9 @@
     .menu-bar {
         display: flex;
         flex-direction: row;
-        gap: 10px;
+        gap: 8px;
         align-items: center;
-        padding: 8px 15px;
+        padding: 6px 12px;
         background-color: #3b3b3b;
         box-sizing: border-box;
         border-top: 1px solid #555555;
@@ -413,9 +414,9 @@
     .send-bar {
         display: flex;
         flex-direction: row;
-        gap: 5px;
+        gap: 4px;
         align-items: center;
-        padding: 0px 15px 5px 10px;
+        padding: 0 12px 4px 8px;
         background-color: #3b3b3b;
         border-bottom: 1px solid #3c3c3c;
         box-sizing: border-box;
@@ -428,8 +429,8 @@
         color: #cccccc;
         border: 1px solid #3c3c3c;
         border-radius: 4px;
-        padding: 4px 5px;
-        font-size: 13px;
+        padding: 3px 5px;
+        font-size: 12px;
         outline: none;
         box-sizing: border-box;
     }
@@ -448,8 +449,8 @@
         color: #ffffff;
         border: none;
         border-radius: 4px;
-        padding: 5px 8px;
-        font-size: 11px;
+        padding: 4px 7px;
+        font-size: 10px;
         cursor: pointer;
         transition:
             filter 0.2s,
@@ -470,8 +471,8 @@
 
     .menu-item.port-item {
         flex: 0 1 auto;
-        min-width: 120px;
-        max-width: 280px;
+        min-width: 105px;
+        max-width: 240px;
     }
 
     #port-select {
@@ -492,8 +493,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 30px;
-        height: 18px;
+        width: 26px;
+        height: 17px;
         background-color: #6c6c6c;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 10%;
@@ -519,12 +520,12 @@
 
     .clear-icon,
     .scroll-bottom-icon {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
     }
 
     .menu-item label {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: #aaaaaa;
         white-space: nowrap;
     }
@@ -533,9 +534,9 @@
         background-color: #3c3c3c;
         color: #cccccc;
         border: 1px solid #555555;
-        padding: 4px 8px;
+        padding: 3px 6px;
         border-radius: 3px;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         outline: none;
     }
 

@@ -54,8 +54,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 30px;
-        height: 18px;
+        width: 26px;
+        height: 17px;
         border-radius: 10%;
         border: 1px solid rgba(255, 255, 255, 0.1);
         cursor: pointer;
