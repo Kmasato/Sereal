@@ -132,16 +132,16 @@
 <style>
     .floating-search-bar {
         position: absolute;
-        top: 10px;
-        right: 25px;
+        top: 8px;
+        right: 20px;
         z-index: 100;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
         background-color: #3b3b3b;
         border: 1px solid #3c3c3c;
         border-radius: 4px;
-        padding: 5px 8px;
+        padding: 4px 6px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
 
@@ -150,11 +150,11 @@
         color: #cccccc;
         border: 1px solid #3c3c3c;
         border-radius: 4px;
-        padding: 4px 6px;
-        font-size: 13px;
+        padding: 3px 5px;
+        font-size: 12px;
         outline: none;
         box-sizing: border-box;
-        width: 180px;
+        width: 150px;
     }
 
     .search-input:focus {
@@ -162,9 +162,9 @@
     }
 
     .result-count {
-        font-size: 11px;
+        font-size: 10px;
         color: #aaaaaa;
-        padding: 0 4px;
+        padding: 0 3px;
         white-space: nowrap;
         user-select: none;
     }
@@ -174,8 +174,8 @@
         color: #ffffff;
         border: none;
         border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: 3px 6px;
+        font-size: 10px;
         cursor: pointer;
         transition:
             filter 0.2s,

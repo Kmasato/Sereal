@@ -235,22 +235,22 @@
 
     /* 1. ヘッダー全体の高さ調整 */
     :global(.lm_header) {
-        height: 40px !important;
+        height: 34px !important;
         background-color: #2d2d2d !important; /* タブバー背景 */
         box-sizing: border-box;
     }
 
     :global(.lm_header .lm_tabs) {
-        height: 40px !important;
+        height: 34px !important;
         display: flex !important;
         align-items: flex-end !important; /* タブを下揃えにして重ねる */
     }
 
     /* 2. 各タブの基本デザイン */
     :global(.lm_tab) {
-        height: 32px !important; /* タブの高さを大きく */
-        font-size: 0.8rem !important;
-        padding: 0 10px 0 16px !important; /* 右側の余白を調整 */
+        height: 28px !important;
+        font-size: 0.75rem !important;
+        padding: 0 8px 0 12px !important;
         border-radius: 6px 6px 0 0 !important; /* 上部に丸み */
         border: 1px solid #555555;
         box-shadow: none !important; /* 上部の影をなくす */
@@ -267,7 +267,7 @@
         display: inline-flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     /* タブ内のタイトル */
@@ -275,14 +275,15 @@
         display: inline-block !important;
         line-height: normal !important;
         vertical-align: middle !important;
+        padding-right: 5px;
     }
 
     /* 個別タブの「閉じる」ボタン (位置を修正し、高さをタイトルと揃える) */
     :global(.lm_tab .lm_close_tab),
     :global(.lm_tab .lm_close) {
         position: static !important; /* 絶対配置を解除してFlexboxに従わせる */
-        width: 14px !important;
-        height: 14px !important;
+        width: 12px !important;
+        height: 12px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -307,7 +308,7 @@
         font-weight: bold;
         /* 選択中はメニューバーのborderを隠すように下方向に描画を伸ばす */
         margin-bottom: -1px;
-        padding: 0 10px 1px 16px !important;
+        padding: 0 8px 1px 12px !important;
         z-index: 2; /* 手前に表示 */
     }
 
@@ -315,7 +316,7 @@
     :global(.lm_tab_plus) {
         background-color: transparent !important;
         color: #aaaaaa !important;
-        font-size: 1.3rem !important;
+        font-size: 1.15rem !important;
         font-weight: normal !important;
         display: inline-flex !important;
         align-items: center;
