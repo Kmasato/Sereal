@@ -553,7 +553,8 @@
 
     /* 下部ターミナル領域 */
     .terminal-area {
-        flex-grow: 1;
+        flex: 1 1 0;
+        min-height: 0;
         width: 100%;
         position: relative;
         overflow: hidden;
@@ -572,10 +573,10 @@
     }
 
     .serialport-tab-container {
-        width: 100%;
-        height: 100%;
+        position: absolute;
+        inset: 5px;
+        padding: 0;
         box-sizing: border-box;
-        padding: 5px;
     }
 
     .hidden {
