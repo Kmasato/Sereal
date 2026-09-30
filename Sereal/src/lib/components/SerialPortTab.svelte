@@ -161,6 +161,7 @@
             convertEol: true,
             disableStdin: true,
             allowProposedApi: true,
+            fontSize: 14,
             theme: {
                 background: "#1e1e1e",
             },
