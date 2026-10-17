@@ -405,10 +405,12 @@
         flex-direction: row;
         gap: 8px;
         align-items: center;
-        padding: 6px 12px;
+        padding: 3px 12px 2px 12px;
         background-color: #3b3b3b;
         box-sizing: border-box;
         border-top: 1px solid #555555;
+        border-left: 1px solid #555555;
+        border-right: 1px solid #555555;
     }
 
     .send-bar {
@@ -416,9 +418,11 @@
         flex-direction: row;
         gap: 4px;
         align-items: center;
-        padding: 0 12px 4px 8px;
+        padding: 0 12px 2px 8px;
         background-color: #3b3b3b;
         border-bottom: 1px solid #3c3c3c;
+        border-left: 1px solid #555555;
+        border-right: 1px solid #555555;
         box-sizing: border-box;
     }
 
@@ -559,6 +563,9 @@
         width: 100%;
         position: relative;
         overflow: hidden;
+        border-left: 1px solid #555555;
+        border-right: 1px solid #555555;
+        box-sizing: border-box;
     }
 
     .placeholder-message {

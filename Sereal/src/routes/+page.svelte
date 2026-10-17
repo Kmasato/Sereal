@@ -235,20 +235,20 @@
 
     /* 1. ヘッダー全体の高さ調整 */
     :global(.lm_header) {
-        height: 34px !important;
+        height: 30px !important;
         background-color: #2d2d2d !important; /* タブバー背景 */
         box-sizing: border-box;
     }
 
     :global(.lm_header .lm_tabs) {
-        height: 34px !important;
+        height: 30px !important;
         display: flex !important;
         align-items: flex-end !important; /* タブを下揃えにして重ねる */
     }
 
     /* 2. 各タブの基本デザイン */
     :global(.lm_tab) {
-        height: 28px !important;
+        height: 26px !important;
         font-size: 0.75rem !important;
         padding: 0 8px 0 12px !important;
         border-radius: 6px 6px 0 0 !important; /* 上部に丸み */
@@ -257,7 +257,7 @@
         background-color: #252526 !important; /* 非アクティブ時は奥に沈む色 */
         color: #969696 !important;
         border-bottom: none !important;
-        margin-right: 2px !important;
+        margin-right: -1px !important;
         transition:
             background-color 0.15s,
             color 0.15s;

@@ -5,12 +5,12 @@ use super::types::BaudRate;
 use getset::{Getters, MutGetters};
 use serialport;
 use std::collections::VecDeque;
+use std::matches;
 use std::sync::Mutex;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, atomic::AtomicBool, mpsc};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use std::u32;
 
 #[derive(Getters, MutGetters)]
 pub struct Controller {
@@ -163,12 +163,9 @@ fn connection_thread_main(
         };
 
         // ポートが開いている間、通信を続ける
-        while {
-            is_running_thread.load(Ordering::Relaxed) && {
-                let guard = is_available_port.lock().unwrap();
-                matches!(*guard, Some(true))
-            }
-        } {
+        while is_running_thread.load(Ordering::Relaxed)
+            && matches!(*is_available_port.lock().unwrap(), Some(true))
+        {
             // 受信処理
             match port.bytes_to_read() {
                 Ok(bytes_to_read) if 0 < bytes_to_read => {
