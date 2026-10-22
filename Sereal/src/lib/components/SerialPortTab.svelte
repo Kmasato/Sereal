@@ -197,7 +197,8 @@
                 text: string;
             };
             if (payload.clientId === clientId && terminal) {
-                terminal.write(payload.text);
+                // ログの上書き回避のために、CRLF(\r\n)以外の単独の復帰コード \r は無視して表示
+                terminal.write(payload.text.replace(/\r(?!\n)/g, ""));
             }
         }).then((fn) => {
             unlisten = fn;
