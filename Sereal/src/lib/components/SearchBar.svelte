@@ -1,9 +1,11 @@
 <script lang="ts">
     import { SearchAddon } from "@xterm/addon-search";
+    import type { Terminal } from "@xterm/xterm";
     import { tick, onMount, onDestroy } from "svelte";
 
-    let { searchAddon, onClose } = $props<{
+    let { searchAddon, terminal, onClose } = $props<{
         searchAddon: SearchAddon | null;
+        terminal?: Terminal | null;
         onClose: () => void;
     }>();
 
@@ -82,6 +84,10 @@
         if (!searchAddon) return;
 
         if (searchText) {
+            if (terminal && !terminal.hasSelection()) {
+                const viewportY = terminal.buffer.active.viewportY;
+                terminal.select(0, viewportY, 1);
+            }
             searchAddon.findNext(searchText, getSearchOptions(true));
         } else {
             searchAddon.clearDecorations();

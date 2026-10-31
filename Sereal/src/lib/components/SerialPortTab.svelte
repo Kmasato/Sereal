@@ -378,7 +378,7 @@
     <!-- 受信データの描画領域 -->
     <div class="terminal-area">
         {#if showSearchBar}
-            <SearchBar {searchAddon} onClose={closeSearchBar} />
+            <SearchBar {searchAddon} {terminal} onClose={closeSearchBar} />
         {/if}
 
         <div
