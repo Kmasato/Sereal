@@ -147,8 +147,13 @@ fn connection_thread_main(
     let mut received_id: u64 = 0;
 
     while is_running_thread.load(Ordering::Relaxed) {
-        let mut port = match serialport::new(&port_name, baud_rate).open() {
-            Ok(p) => {
+        let mut port = match serialport::new(&port_name, baud_rate)
+            .dtr_on_open(true)
+            .open()
+        {
+            Ok(mut p) => {
+                let _ = p.write_request_to_send(true);
+
                 let mut is_available = is_available_port.lock().unwrap();
                 *is_available = Some(true);
                 println!("Port {} opened", port_name);
